@@ -1,0 +1,1775 @@
+<!DOCTYPE html>
+<html lang="ja" class="h-full bg-slate-50">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>統合 物件開発・工事案件管理 Hub</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0f7ff',
+                            100: '#e0effe',
+                            500: '#2563eb',
+                            600: '#1d4ed8',
+                            700: '#1e40af',
+                            800: '#1e3a8a',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        .kanban-col { min-height: 520px; }
+    </style>
+</head>
+<body class="h-full font-sans text-slate-800 flex overflow-hidden">
+
+    <!-- Sidebar -->
+    <aside class="w-64 bg-slate-900 text-slate-300 flex flex-col justify-between shrink-0 shadow-xl z-20">
+        <div>
+            <!-- Logo / Title -->
+            <div class="p-5 border-b border-slate-800 flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center text-white shadow-lg shadow-blue-500/30">
+                    <i class="fa-solid fa-layer-group text-lg"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-white text-base leading-tight">開発 & 案件 Hub</h1>
+                    <p class="text-[11px] text-slate-400">物件開発 × 工事案件 統合管理</p>
+                </div>
+            </div>
+
+            <!-- Navigation Items -->
+            <nav class="p-3 space-y-1">
+                <button onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-btn w-full flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-all text-white bg-brand-600 shadow-md">
+                    <i class="fa-solid fa-chart-pie w-5 text-center"></i>
+                    <span>ダッシュボード</span>
+                </button>
+
+                <button onclick="switchTab('properties')" id="nav-properties" class="nav-btn w-full flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-all text-slate-400 hover:text-slate-100 hover:bg-slate-800">
+                    <i class="fa-solid fa-map-location-dot w-5 text-center"></i>
+                    <span>物件開発一覧</span>
+                    <span id="badge-property-count" class="ml-auto bg-slate-800 text-slate-300 text-xs px-2 py-0.5 rounded-full font-semibold">0</span>
+                </button>
+
+                <button onclick="switchTab('projects')" id="nav-projects" class="nav-btn w-full flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-all text-slate-400 hover:text-slate-100 hover:bg-slate-800">
+                    <i class="fa-solid fa-helmet-safety w-5 text-center"></i>
+                    <span>工事案件管理</span>
+                    <span id="badge-project-count" class="ml-auto bg-slate-800 text-slate-300 text-xs px-2 py-0.5 rounded-full font-semibold">0</span>
+                </button>
+
+                <div class="pt-4 pb-1">
+                    <p class="px-3 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">統合ツール</p>
+                </div>
+
+                <button onclick="switchTab('import-export')" id="nav-import-export" class="nav-btn w-full flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-all text-slate-400 hover:text-slate-100 hover:bg-slate-800">
+                    <i class="fa-solid fa-file-code w-5 text-center text-amber-400"></i>
+                    <span>データインポート・統合</span>
+                </button>
+            </nav>
+        </div>
+
+        <!-- System Controls Footer -->
+        <div class="p-4 border-t border-slate-800 bg-slate-950/50">
+            <div class="flex items-center justify-between text-xs text-slate-400 mb-2">
+                <span class="flex items-center gap-1.5"><i class="fa-solid fa-database text-emerald-400"></i> 保存状態</span>
+                <span class="text-emerald-400 font-medium">ローカル連動中</span>
+            </div>
+            <button onclick="loadDefaultPromptData()" class="w-full text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 py-2 rounded-lg transition border border-slate-700 font-medium flex items-center justify-center gap-2">
+                <i class="fa-solid fa-rotate text-amber-400"></i> 提供データを一括読み込み
+            </button>
+        </div>
+    </aside>
+
+    <!-- Main Content Container -->
+    <main class="flex-1 flex flex-col min-w-0 overflow-hidden bg-slate-100">
+        <!-- Top App Bar -->
+        <header class="bg-white border-b border-slate-200 px-6 py-3.5 flex items-center justify-between shrink-0 shadow-sm">
+            <div class="flex items-center gap-3">
+                <h2 id="page-title" class="text-xl font-bold text-slate-800">ダッシュボード</h2>
+            </div>
+            
+            <div class="flex items-center gap-3">
+                <button onclick="openModal('propertyModal')" class="bg-slate-800 hover:bg-slate-900 text-white text-sm px-3.5 py-2 rounded-lg flex items-center gap-2 transition font-medium shadow-sm">
+                    <i class="fa-solid fa-plus text-xs"></i> 物件を追加
+                </button>
+                <button onclick="openModal('projectModal')" class="bg-brand-600 hover:bg-brand-700 text-white text-sm px-3.5 py-2 rounded-lg flex items-center gap-2 transition font-medium shadow-sm shadow-blue-500/20">
+                    <i class="fa-solid fa-plus text-xs"></i> 工事案件を追加
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Workspace -->
+        <div class="flex-1 overflow-y-auto p-6" id="view-container">
+
+            <!-- 1. DASHBOARD VIEW -->
+            <section id="view-dashboard" class="space-y-6">
+                <!-- Summary Metrics Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+                    <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-semibold text-slate-500 uppercase">開発物件数</p>
+                            <h3 class="text-2xl font-extrabold text-slate-800 mt-1" id="dash-total-properties">0</h3>
+                            <p class="text-xs text-slate-400 mt-1"><span id="dash-rank-a-properties" class="text-emerald-600 font-semibold">0</span> 件 (A)</p>
+                        </div>
+                        <div class="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-xl">
+                            <i class="fa-solid fa-building-flag"></i>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-semibold text-slate-500 uppercase">工事案件数</p>
+                            <h3 class="text-2xl font-extrabold text-slate-800 mt-1" id="dash-total-projects">0</h3>
+                            <p class="text-xs text-slate-400 mt-1"><span id="dash-linked-projects" class="text-brand-600 font-semibold">0</span> 件が物件と連携済</p>
+                        </div>
+                        <div class="w-12 h-12 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-xl">
+                            <i class="fa-solid fa-diagram-project"></i>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-semibold text-slate-500 uppercase">案件見込総額</p>
+                            <h3 class="text-2xl font-extrabold text-slate-800 mt-1" id="dash-total-amount">¥0</h3>
+                            <p class="text-xs text-emerald-600 mt-1 font-medium"><i class="fa-solid fa-chart-line"></i> 工事受注金額合計</p>
+                        </div>
+                        <div class="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl">
+                            <i class="fa-solid fa-yen-sign"></i>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-semibold text-slate-500 uppercase">想定平均粗利率</p>
+                            <h3 class="text-2xl font-extrabold text-slate-800 mt-1" id="dash-avg-profit">0%</h3>
+                            <p class="text-xs text-amber-600 mt-1 font-medium">全工事案件の加重平均</p>
+                        </div>
+                        <div class="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-xl">
+                            <i class="fa-solid fa-percent"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Charts & Activity Grid -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
+                        <h4 class="font-bold text-slate-800 text-sm mb-4 flex items-center gap-2">
+                            <i class="fa-solid fa-chart-pie text-brand-600"></i> 工種・セクター別分布
+                        </h4>
+                        <div class="relative flex-1 flex items-center justify-center min-h-[220px]">
+                            <canvas id="chart-sector-status"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm lg:col-span-2 flex flex-col">
+                        <div class="flex items-center justify-between mb-4">
+                            <h4 class="font-bold text-slate-800 text-sm flex items-center gap-2">
+                                <i class="fa-solid fa-link text-brand-600"></i> 最新の物件・案件連動状況
+                            </h4>
+                            <button onclick="switchTab('projects')" class="text-xs text-brand-600 hover:underline font-semibold">案件一覧へ &rarr;</button>
+                        </div>
+                        <div class="overflow-x-auto flex-1">
+                            <table class="w-full text-left text-sm text-slate-600">
+                                <thead class="bg-slate-50 text-slate-500 text-xs uppercase font-semibold border-b border-slate-200">
+                                    <tr>
+                                        <th class="py-2.5 px-3">案件名</th>
+                                        <th class="py-2.5 px-3">発注者 (クライアント)</th>
+                                        <th class="py-2.5 px-3">紐付け物件</th>
+                                        <th class="py-2.5 px-3">ランク</th>
+                                        <th class="py-2.5 px-3 text-right">金額 (税込/税抜)</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="dash-recent-projects-list" class="divide-y divide-slate-100">
+                                    <!-- Dynamic content -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 2. PROPERTIES VIEW -->
+            <section id="view-properties" class="hidden space-y-5">
+                <!-- Search and Filter Controls -->
+                <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row gap-3 items-center justify-between">
+                    <div class="flex items-center gap-3 w-full md:w-auto flex-1">
+                        <div class="relative flex-1 md:w-64">
+                            <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+                            <input type="text" id="prop-search" oninput="renderProperties()" placeholder="物件名・住所・地主名で検索..." class="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
+                        </div>
+                        <select id="prop-rank-filter" onchange="renderProperties()" class="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
+                            <option value="ALL">すべてのランク</option>
+                            <option value="A">A</option>
+                            <option value="B">B</option>
+                            <option value="C">C</option>
+                        </select>
+                        <select id="prop-type-filter" onchange="renderProperties()" class="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
+                            <option value="ALL">すべての物件種別</option>
+                            <option value="建て貸し">建て貸し</option>
+                            <option value="居抜き">居抜き</option>
+                            <option value="土地">土地</option>
+                            <option value="その他">その他</option>
+                        </select>
+                    </div>
+
+                    <!-- View Switcher -->
+                    <div class="flex items-center bg-slate-100 p-1 rounded-lg border border-slate-200 shrink-0">
+                        <button id="btn-prop-view-table" onclick="setPropertyViewMode('table')" class="px-3 py-1.5 rounded-md text-xs font-semibold transition bg-white text-slate-800 shadow-sm">
+                            <i class="fa-solid fa-list mr-1"></i> テーブル一覧
+                        </button>
+                        <button id="btn-prop-view-kanban" onclick="setPropertyViewMode('kanban')" class="px-3 py-1.5 rounded-md text-xs font-semibold transition text-slate-600 hover:text-slate-900">
+                            <i class="fa-solid fa-table-columns mr-1"></i> ランク別カンバン
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Properties Table View -->
+                <div id="properties-table-view" class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-sm text-slate-600">
+                            <thead class="bg-slate-50 text-slate-500 text-xs uppercase font-semibold border-b border-slate-200">
+                                <tr>
+                                    <th class="py-3 px-4">物件開発名称</th>
+                                    <th class="py-3 px-4">種別</th>
+                                    <th class="py-3 px-4">ランク</th>
+                                    <th class="py-3 px-4">所在地 / 住所</th>
+                                    <th class="py-3 px-4">面積 (土地/建物)</th>
+                                    <th class="py-3 px-4">地主</th>
+                                    <th class="py-3 px-4">土地承諾</th>
+                                    <th class="py-3 px-4 text-center">紐づく工事案件</th>
+                                    <th class="py-3 px-4 text-center">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="properties-table-body" class="divide-y divide-slate-100">
+                                <!-- Populated via JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Properties Kanban View -->
+                <div id="properties-kanban-view" class="hidden grid grid-cols-1 md:grid-cols-3 gap-5 overflow-x-auto pb-4">
+                    <!-- Rank A, B, C Kanban Columns -->
+                </div>
+            </section>
+
+            <!-- 3. PROJECTS VIEW -->
+            <section id="view-projects" class="hidden space-y-5">
+                <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row gap-3 items-center justify-between">
+                    <div class="flex items-center gap-3 w-full md:w-auto">
+                        <div class="relative flex-1 md:w-64">
+                            <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+                            <input type="text" id="proj-search" oninput="renderProjects()" placeholder="案件名・発注先・住所で検索..." class="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
+                        </div>
+                        <select id="proj-property-filter" onchange="renderProjects()" class="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
+                            <option value="ALL">すべての紐付け物件</option>
+                        </select>
+                    </div>
+
+                    <!-- View Switcher -->
+                    <div class="flex items-center bg-slate-100 p-1 rounded-lg border border-slate-200 shrink-0">
+                        <button id="btn-view-table" onclick="setProjectViewMode('table')" class="px-3 py-1.5 rounded-md text-xs font-semibold transition bg-white text-slate-800 shadow-sm">
+                            <i class="fa-solid fa-list mr-1"></i> テーブル一覧
+                        </button>
+                        <button id="btn-view-kanban" onclick="setProjectViewMode('kanban')" class="px-3 py-1.5 rounded-md text-xs font-semibold transition text-slate-600 hover:text-slate-900">
+                            <i class="fa-solid fa-table-columns mr-1"></i> ランク別カンバン
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Projects Table View -->
+                <div id="projects-table-view" class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-sm text-slate-600">
+                            <thead class="bg-slate-50 text-slate-500 text-xs uppercase font-semibold border-b border-slate-200">
+                                <tr>
+                                    <th class="py-3 px-4">案件名</th>
+                                    <th class="py-3 px-4">発注者</th>
+                                    <th class="py-3 px-4">紐付け物件</th>
+                                    <th class="py-3 px-4">工種/セクター</th>
+                                    <th class="py-3 px-4">ランク</th>
+                                    <th class="py-3 px-4 text-right">金額</th>
+                                    <th class="py-3 px-4 text-center">粗利率</th>
+                                    <th class="py-3 px-4">契約状況</th>
+                                    <th class="py-3 px-4 text-center">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="projects-table-body" class="divide-y divide-slate-100">
+                                <!-- Populated via JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Projects Kanban View -->
+                <div id="projects-kanban-view" class="hidden grid grid-cols-1 md:grid-cols-3 gap-5 overflow-x-auto pb-4">
+                    <!-- Rank A, B, C Kanban Columns -->
+                </div>
+            </section>
+
+            <!-- 4. IMPORT / EXPORT VIEW -->
+            <section id="view-import-export" class="hidden space-y-6 max-w-5xl mx-auto">
+                <div class="bg-gradient-to-r from-slate-900 to-blue-950 text-white p-6 rounded-2xl shadow-lg flex items-center justify-between">
+                    <div>
+                        <h3 class="text-xl font-bold flex items-center gap-2">
+                            <i class="fa-solid fa-file-import text-amber-400"></i> 旧保存データ統合インポート
+                        </h3>
+                        <p class="text-slate-300 text-sm mt-1">
+                            提示された「案件管理データ(配列)」および「物件開発管理データ(オブジェクト)」のJSONを統合読み込みします。
+                        </p>
+                    </div>
+                    <i class="fa-solid fa-box-archive text-5xl text-white/10"></i>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Custom File Upload Dropzone -->
+                    <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+                        <div class="flex items-center gap-3 border-b border-slate-100 pb-3">
+                            <div class="w-10 h-10 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center text-lg">
+                                <i class="fa-solid fa-cloud-arrow-up"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-slate-800">JSON / CSV ファイルを読込</h4>
+                                <p class="text-xs text-slate-500">案件・物件の保存データファイルを選択</p>
+                            </div>
+                        </div>
+
+                        <div id="dropzone-unified" onclick="document.getElementById('file-unified-input').click()" class="border-2 border-dashed border-slate-300 hover:border-brand-500 rounded-xl p-8 text-center cursor-pointer transition bg-slate-50/50 hover:bg-blue-50/30">
+                            <i class="fa-solid fa-file-circle-plus text-4xl text-slate-400 mb-2"></i>
+                            <p class="text-sm font-medium text-slate-700">保存ファイルをドロップまたはクリックして参照</p>
+                            <p class="text-xs text-slate-400 mt-1">案件配列 `[...]` や 物件 `{ properties: [...] }` を自動判定</p>
+                            <input type="file" id="file-unified-input" accept=".json,.csv" class="hidden" onchange="handleFileImport(event)">
+                        </div>
+                        <div id="import-status-msg" class="text-xs text-emerald-600 font-semibold hidden"></div>
+                    </div>
+
+                    <!-- Preset Loader -->
+                    <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
+                        <div>
+                            <div class="flex items-center gap-3 border-b border-slate-100 pb-3 mb-4">
+                                <div class="w-10 h-10 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center text-lg">
+                                    <i class="fa-solid fa-wand-magic-sparkles"></i>
+                                </div>
+                                <div>
+                                    <h4 class="font-bold text-slate-800">ご提示データのワンクリック統合</h4>
+                                    <p class="text-xs text-slate-500">13件の工事案件 + 7件の物件開発データ</p>
+                                </div>
+                            </div>
+                            <p class="text-sm text-slate-600 leading-relaxed">
+                                今回ご提示いただいた「資さんうどんフェドラ佐野」「二三ヶ丘幼稚園」「セイムス三橋店」「武蔵村山神明」等の13件の案件データと7件の物件開発データを一括読み込みし、住所（佐野市高荻町など）をマッチングして自動接続します。
+                            </p>
+                        </div>
+                        <button onclick="loadDefaultPromptData()" class="w-full mt-4 bg-brand-600 hover:bg-brand-700 text-white font-bold py-3 px-4 rounded-xl shadow-md transition flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-bolt"></i> 提示データを一括ロード＆自動連動
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Export Operations -->
+                <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+                    <h4 class="font-bold text-slate-800 flex items-center gap-2">
+                        <i class="fa-solid fa-download text-emerald-600"></i> 統合データのバックアップ・エクスポート
+                    </h4>
+                    <p class="text-sm text-slate-600">
+                        物件開発と工事案件が紐づいた「統合データベース」を保存・バックアップとしてダウンロードできます。
+                    </p>
+                    <div class="flex flex-wrap gap-3 pt-2">
+                        <button onclick="exportUnifiedData('json')" class="bg-slate-800 hover:bg-slate-900 text-white px-4 py-2.5 rounded-lg text-sm font-semibold flex items-center gap-2 shadow">
+                            <i class="fa-solid fa-file-arrow-down"></i> 統合データをJSON出力
+                        </button>
+                        <button onclick="exportUnifiedData('csv')" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-lg text-sm font-semibold flex items-center gap-2 shadow">
+                            <i class="fa-solid fa-file-csv"></i> 案件・物件一覧をCSV出力
+                        </button>
+                        <button onclick="confirmResetData()" class="bg-rose-50 hover:bg-rose-100 text-rose-600 px-4 py-2.5 rounded-lg text-sm font-semibold flex items-center gap-2 border border-rose-200 ml-auto">
+                            <i class="fa-solid fa-trash-can"></i> データを初期化
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+        </div>
+    </main>
+
+    <!-- MODAL: Property Form -->
+    <div id="propertyModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-white w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden my-auto max-h-[90vh] flex flex-col">
+            <div class="px-6 py-4 bg-slate-900 text-white flex items-center justify-between shrink-0">
+                <h3 id="propModalTitle" class="font-bold text-base flex items-center gap-2"><i class="fa-solid fa-building-flag text-brand-500"></i> 物件開発情報の登録</h3>
+                <button onclick="closeModal('propertyModal')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <form id="propertyForm" onsubmit="saveProperty(event)" class="p-6 space-y-4 overflow-y-auto">
+                <input type="hidden" id="prop-id">
+                <div>
+                    <label class="block text-xs font-bold uppercase text-slate-600 mb-1">物件開発名称 *</label>
+                    <input type="text" id="prop-name" required placeholder="例: 武蔵村山神明1丁目（資さんうどん、バーガーキング）" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+                </div>
+                <div class="grid grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold uppercase text-slate-600 mb-1">開発種別</label>
+                        <select id="prop-type" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+                            <option value="建て貸し">建て貸し</option>
+                            <option value="居抜き">居抜き</option>
+                            <option value="土地">土地</option>
+                            <option value="その他">その他</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase text-slate-600 mb-1">開発ランク</label>
+                        <select id="prop-rank" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 outline-none font-bold">
+                            <option value="A">A</option>
+                            <option value="B">B</option>
+                            <option value="C">C</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase text-slate-600 mb-1">土地承諾</label>
+                        <select id="prop-consent" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+                            <option value="承諾済">承諾済</option>
+                            <option value="未承諾">未承諾</option>
+                            <option value="交渉中">交渉中</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold uppercase text-slate-600 mb-1">所在地 / 住所 *</label>
+                    <input type="text" id="prop-address" required placeholder="例: 東京都武蔵村山市神明１丁目９８番１号" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+                </div>
+                <div class="grid grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold uppercase text-slate-600 mb-1">土地面積 (㎡/坪)</label>
+                        <input type="number" step="0.01" id="prop-area" placeholder="例: 3039" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase text-slate-600 mb-1">建物面積 (㎡/坪)</label>
+                        <input type="number" step="0.01" id="prop-buildingArea" placeholder="例: 410" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase text-slate-600 mb-1">用途地域</label>
+                        <input type="text" id="prop-zone" placeholder="例: 一種住居" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold uppercase text-slate-600 mb-1">地主（カンマ区切り）</label>
+                        <input type="text" id="prop-landowners" placeholder="例: 森谷末子, 有限会社森谷" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase text-slate-600 mb-1">仲介業者名</label>
+                        <input type="text" id="prop-brokerName" placeholder="例: JA村山" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+                    </div>
+                </div>
+                <div class="flex justify-end gap-2 pt-3 border-t border-slate-100">
+                    <button type="button" onclick="closeModal('propertyModal')" class="px-4 py-2 rounded-lg text-sm font-semibold text-slate-600 hover:bg-slate-100">キャンセル</button>
+                    <button type="submit" class="px-5 py-2 rounded-lg text-sm font-semibold bg-brand-600 hover:bg-brand-700 text-white shadow-md">保存する</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: Project Form -->
+    <div id="projectModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-white w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden my-auto max-h-[90vh] flex flex-col">
+            <div class="px-6 py-4 bg-slate-900 text-white flex items-center justify-between shrink-0">
+                <h3 id="projModalTitle" class="font-bold text-base flex items-center gap-2"><i class="fa-solid fa-helmet-safety text-amber-400"></i> 工事案件の登録</h3>
+                <button onclick="closeModal('projectModal')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <form id="projectForm" onsubmit="saveProject(event)" class="p-6 space-y-4 overflow-y-auto">
+                <input type="hidden" id="proj-id">
+                <div>
+                    <label class="block text-xs font-bold uppercase text-slate-600 mb-1">工事案件名 *</label>
+                    <input type="text" id="proj-name" required placeholder="例: 資さんうどんフェドラ佐野 新装工事" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold uppercase text-slate-600 mb-1">紐づく物件開発 *</label>
+                    <select id="proj-property-id" required class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 outline-none bg-slate-50">
+                        <!-- Populated dynamically -->
+                    </select>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold uppercase text-slate-600 mb-1">発注者 / クライアント名 *</label>
+                        <input type="text" id="proj-client" required placeholder="例: 株式会社すかいらーくホールディングス" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase text-slate-600 mb-1">セクター / 業界</label>
+                        <select id="proj-sector" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+                            <option value="飲食">飲食</option>
+                            <option value="物販">物販</option>
+                            <option value="幼保">幼保</option>
+                            <option value="その他">その他</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="grid grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold uppercase text-slate-600 mb-1">工種</label>
+                        <input type="text" id="proj-workType" placeholder="例: 新装工事, 改修工事" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase text-slate-600 mb-1">ランク</label>
+                        <select id="proj-rank" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 outline-none font-bold">
+                            <option value="A">A</option>
+                            <option value="B">B</option>
+                            <option value="C">C</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase text-slate-600 mb-1">契約ステータス</label>
+                        <input type="text" id="proj-contractStatus" placeholder="例: 未締結, 設計契約済, 注文書" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+                    </div>
+                </div>
+                <div class="grid grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold uppercase text-slate-600 mb-1">工事金額 (円)</label>
+                        <input type="number" id="proj-amount" placeholder="例: 70000000" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase text-slate-600 mb-1">粗利率 (%)</label>
+                        <input type="number" step="0.1" id="proj-profitRate" placeholder="例: 20" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase text-slate-600 mb-1">売上計上月</label>
+                        <input type="month" id="proj-billingMonth" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold uppercase text-slate-600 mb-1">現場所在地 / 住所</label>
+                    <input type="text" id="proj-address" placeholder="例: 栃木県佐野市高荻町1341" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold uppercase text-slate-600 mb-1">メモ・進捗特記事項</label>
+                    <textarea id="proj-notes" rows="2" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 outline-none" placeholder="現調予定やパートナー情報など"></textarea>
+                </div>
+                <div class="flex justify-end gap-2 pt-3 border-t border-slate-100">
+                    <button type="button" onclick="closeModal('projectModal')" class="px-4 py-2 rounded-lg text-sm font-semibold text-slate-600 hover:bg-slate-100">キャンセル</button>
+                    <button type="submit" class="px-5 py-2 rounded-lg text-sm font-semibold bg-brand-600 hover:bg-brand-700 text-white shadow-md">保存する</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: Property Detail View -->
+    <div id="propertyDetailModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-white w-full max-w-4xl rounded-2xl shadow-2xl overflow-hidden flex flex-col my-auto max-h-[90vh]">
+            <div class="px-6 py-4 bg-slate-900 text-white flex items-center justify-between shrink-0">
+                <div class="flex items-center gap-3">
+                    <span id="prop-detail-rank-badge" class="bg-emerald-500 text-slate-900 text-xs px-2.5 py-1 rounded-full font-black">A</span>
+                    <h3 id="prop-detail-title" class="font-bold text-lg">物件詳細</h3>
+                </div>
+                <button onclick="closeModal('propertyDetailModal')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            
+            <div class="p-6 overflow-y-auto space-y-6">
+                <!-- Info Grid -->
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200 text-xs">
+                    <div>
+                        <p class="text-slate-400">開発種別</p>
+                        <p id="prop-detail-type" class="font-bold text-slate-800 text-sm mt-0.5">-</p>
+                    </div>
+                    <div>
+                        <p class="text-slate-400">土地承諾</p>
+                        <p id="prop-detail-consent" class="font-bold text-slate-800 text-sm mt-0.5">-</p>
+                    </div>
+                    <div>
+                        <p class="text-slate-400">土地面積 / 建物面積</p>
+                        <p id="prop-detail-areas" class="font-bold text-slate-800 text-sm mt-0.5">-</p>
+                    </div>
+                    <div>
+                        <p class="text-slate-400">用途地域</p>
+                        <p id="prop-detail-zone" class="font-bold text-slate-800 text-sm mt-0.5">-</p>
+                    </div>
+                    <div class="col-span-2">
+                        <p class="text-slate-400">所在地</p>
+                        <p id="prop-detail-address" class="font-semibold text-slate-800 text-sm mt-0.5">-</p>
+                    </div>
+                    <div class="col-span-2">
+                        <p class="text-slate-400">地主情報</p>
+                        <p id="prop-detail-landowners" class="font-semibold text-slate-800 text-sm mt-0.5">-</p>
+                    </div>
+                </div>
+
+                <!-- Section: Visits & Tenants -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Visits Log -->
+                    <div class="border border-slate-200 rounded-xl p-4 bg-white">
+                        <h5 class="font-bold text-xs uppercase text-slate-500 mb-3 flex items-center gap-1.5">
+                            <i class="fa-solid fa-comments text-brand-600"></i> 現地訪問・交信履歴
+                        </h5>
+                        <div id="prop-detail-visits" class="space-y-2 max-h-48 overflow-y-auto pr-1">
+                            <!-- Populated dynamically -->
+                        </div>
+                    </div>
+
+                    <!-- Tenants List -->
+                    <div class="border border-slate-200 rounded-xl p-4 bg-white">
+                        <h5 class="font-bold text-xs uppercase text-slate-500 mb-3 flex items-center gap-1.5">
+                            <i class="fa-solid fa-store text-amber-500"></i> 出店検討テナント意向
+                        </h5>
+                        <div id="prop-detail-tenants" class="space-y-2 max-h-48 overflow-y-auto pr-1">
+                            <!-- Populated dynamically -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section: Linked Construction Projects -->
+                <div class="space-y-3 pt-2 border-t border-slate-100">
+                    <div class="flex items-center justify-between">
+                        <h4 class="font-bold text-slate-800 text-base flex items-center gap-2">
+                            <i class="fa-solid fa-helmet-safety text-brand-600"></i> この物件に紐づく工事・新装案件
+                        </h4>
+                        <button id="btn-add-project-to-prop" class="text-xs bg-brand-600 hover:bg-brand-700 text-white px-3 py-1.5 rounded-lg font-semibold flex items-center gap-1 shadow-sm">
+                            <i class="fa-solid fa-plus"></i> 工事案件を追加
+                        </button>
+                    </div>
+
+                    <div id="prop-linked-projects-list" class="space-y-2">
+                        <!-- Populated via JS -->
+                    </div>
+                </div>
+            </div>
+
+            <div class="p-4 bg-slate-50 border-t border-slate-200 flex justify-end shrink-0">
+                <button onclick="closeModal('propertyDetailModal')" class="px-5 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg text-sm font-semibold">閉じる</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Default Prompt Datasets Integration Engine
+        const DEFAULT_PROMPT_PROJECTS = [
+            {
+                "id": "p_1784769094128",
+                "clientName": "株式会社すかいらーくホールディングス",
+                "projectName": "資さんうどんフェドラ佐野",
+                "sector": "飲食",
+                "workType": "新装工事",
+                "structure": "木造",
+                "address": "栃木県佐野市高荻町1341",
+                "amount": 70000000,
+                "profitRate": 20,
+                "notes": "7月29日 現調 すかいらーく梅原さん、GLI樋口社長同行",
+                "rank": "C",
+                "billingMonth": "2026-07",
+                "contractStatus": "未締結",
+                "status": "active"
+            },
+            {
+                "id": "p_1783644040624",
+                "clientName": "ジャクエツ",
+                "projectName": "二三ヶ丘幼稚園改修工事",
+                "sector": "幼保",
+                "workType": "改装工事",
+                "structure": "鉄骨造",
+                "address": "千葉県松戸市二ツ木１６９２",
+                "amount": 50000000,
+                "profitRate": 20,
+                "notes": "概算提出が遅れている状況",
+                "rank": "C",
+                "billingMonth": "2026-08",
+                "contractStatus": "未締結",
+                "status": "active"
+            },
+            {
+                "id": "p_1783643951779",
+                "clientName": "ジャクエツ",
+                "projectName": "仙台あけぼの幼稚園改修工事",
+                "sector": "幼保",
+                "workType": "改装工事",
+                "structure": "鉄骨造",
+                "address": "",
+                "amount": 35000000,
+                "profitRate": 20,
+                "notes": "",
+                "rank": "C",
+                "billingMonth": "2026-08",
+                "contractStatus": "未締結",
+                "status": "active"
+            },
+            {
+                "id": "p_1782710827498",
+                "clientName": "株式会社すかいらーくホールディングス",
+                "projectName": "くし葉イオンモール郡山",
+                "sector": "飲食",
+                "workType": "新装工事",
+                "structure": "その他",
+                "address": "福島県伊達市",
+                "amount": 40000000,
+                "profitRate": 15,
+                "partner": "サザナ",
+                "notes": "",
+                "rank": "B",
+                "billingMonth": "2026-06",
+                "contractStatus": "未締結",
+                "status": "active"
+            },
+            {
+                "id": "p_1782710725983",
+                "clientName": "株式会社すかいらーくホールディングス",
+                "projectName": "しゃぶ葉イオンモール郡山",
+                "sector": "飲食",
+                "workType": "新装工事",
+                "structure": "その他",
+                "address": "福島県伊達市",
+                "amount": 60000000,
+                "profitRate": 15,
+                "partner": "サザナ",
+                "notes": "",
+                "rank": "B",
+                "billingMonth": "2026-06",
+                "contractStatus": "注文書",
+                "status": "active"
+            },
+            {
+                "id": "p_1782710606085",
+                "clientName": "OICグループ",
+                "projectName": "ロピア松本店新装工事",
+                "sector": "物販",
+                "workType": "新装工事",
+                "structure": "その他",
+                "address": "長野県松本市",
+                "amount": 300000000,
+                "profitRate": 15,
+                "startDate": "2027-01-08",
+                "endDate": "2027-03-26",
+                "partner": "さがみ塗装工業",
+                "notes": "",
+                "rank": "C",
+                "billingMonth": "2026-08",
+                "contractStatus": "未締結",
+                "status": "active"
+            },
+            {
+                "id": "p_1782709692173",
+                "clientName": "富士薬品",
+                "projectName": "セイムス三橋店新築工事",
+                "sector": "物販",
+                "workType": "新築工事",
+                "structure": "鉄骨造",
+                "address": "埼玉県さいたま市大宮区三橋４－１５０",
+                "amount": 200000000,
+                "profitRate": 20,
+                "notes": "７月上旬に役員会議",
+                "rank": "C",
+                "billingMonth": "2026-07",
+                "contractStatus": "未締結",
+                "status": "active"
+            },
+            {
+                "id": "p_1782292190359",
+                "clientName": "株式会社すかいらーくホールディングス",
+                "projectName": "ガスト板橋南町新装工事",
+                "sector": "飲食",
+                "workType": "新装工事",
+                "structure": "その他",
+                "address": "東京都板橋区南町２２－１４",
+                "amount": 60000000,
+                "profitRate": 15,
+                "notes": "7月3日現調予定",
+                "rank": "C",
+                "billingMonth": "2026-08",
+                "contractStatus": "未締結",
+                "status": "active"
+            },
+            {
+                "id": "p_1782292151740",
+                "clientName": "株式会社すかいらーくホールディングス",
+                "projectName": "しゃぶ葉板橋南町新装工事",
+                "sector": "飲食",
+                "workType": "新装工事",
+                "structure": "その他",
+                "address": "東京都板橋区南町２２－１４",
+                "amount": 60000000,
+                "profitRate": 15,
+                "notes": "7月3日現調予定",
+                "rank": "C",
+                "billingMonth": "2026-08",
+                "contractStatus": "未締結",
+                "status": "active"
+            },
+            {
+                "id": "p_1782121000008",
+                "clientName": "株式会社すかいらーくホールディングス",
+                "projectName": "ガスト新潟駅前",
+                "sector": "飲食",
+                "workType": "新装工事",
+                "structure": "その他",
+                "address": "新潟県新潟市",
+                "amount": 63500000,
+                "profitRate": 17,
+                "startDate": "2026-07-14",
+                "endDate": "2026-09-30",
+                "partner": "サザナ",
+                "notes": "概査より1000万増加と分離発注により利益率改善。",
+                "rank": "A",
+                "billingMonth": "2026-07",
+                "contractStatus": "設計契約済",
+                "status": "active"
+            },
+            {
+                "id": "p_1782120516738",
+                "clientName": "株式会社すかいらーくホールディングス",
+                "projectName": "バーミヤンイオンモール伊達新装工事",
+                "sector": "飲食",
+                "workType": "新装工事",
+                "structure": "その他",
+                "address": "福島県伊達市堂ノ内９６０",
+                "amount": 63500000,
+                "profitRate": 17,
+                "startDate": "2026-07-14",
+                "endDate": "2026-09-30",
+                "partner": "サザナ",
+                "notes": "概査より1000万増加と分離発注により利益率改善。",
+                "rank": "A",
+                "billingMonth": "2026-06",
+                "contractStatus": "設計契約済",
+                "status": "active"
+            },
+            {
+                "id": "p_1782110928683",
+                "clientName": "株式会社ジャクエツ",
+                "projectName": "中台幼稚園改修工事",
+                "sector": "幼保",
+                "workType": "新装工事",
+                "structure": "鉄骨造",
+                "address": "千葉県船橋市前原東4-16",
+                "amount": 40000000,
+                "profitRate": 20,
+                "startDate": "2026-11-02",
+                "endDate": "2027-02-26",
+                "partner": "未定",
+                "notes": "幼保連携型こども園の要件である耐火建築物に対応するための改修工事",
+                "rank": "C",
+                "billingMonth": "2026-09",
+                "contractStatus": "未締結",
+                "status": "active"
+            },
+            {
+                "id": "p_1782101080744",
+                "clientName": "株式会社すかいらーくホールディングス",
+                "projectName": "夢庵イオンモール松本",
+                "sector": "飲食",
+                "workType": "新装工事",
+                "structure": "その他",
+                "address": "長野県松本市",
+                "amount": 65400000,
+                "profitRate": 7.8,
+                "startDate": "2026-05-11",
+                "endDate": "2026-07-21",
+                "partner": "ヤマキョウ",
+                "notes": "業者の手配に難航した結果低利益率",
+                "rank": "A",
+                "billingMonth": "2026-06",
+                "contractStatus": "設計請負契約済",
+                "status": "active"
+            }
+        ];
+
+        const DEFAULT_PROMPT_PROPERTIES = [
+            {
+                "id": "prop-1782274707039",
+                "name": "武蔵村山神明1丁目（資さんうどん、バーガーキング）",
+                "type": "建て貸し",
+                "rank": "A",
+                "address": "東京都武蔵村山市神明１丁目９８番１号",
+                "area": 3039,
+                "zone": "一種住居",
+                "landowners": ["森谷末子"],
+                "consent": "承諾済",
+                "visits": [
+                    { "date": "2026-06-23", "detail": "森谷末子様、娘と立ち話したところ、弟が詳細分かっているとの事。" },
+                    { "date": "2026-06-30", "detail": "面談が出来ないため、資さんうどんと、バーガーキングの複合案で提案書を置いてくる" },
+                    { "date": "2026-07-01", "detail": "地主の息子さん、有限会社森谷の森社長よりメールあり、面談のアポ。７月8日（水）" },
+                    { "date": "2026-07-15", "detail": "森谷様面談、土地利用承諾書を受領" }
+                ],
+                "tenants": [
+                    { "name": "バーガーキング", "feel": "B", "application": "受領" },
+                    { "name": "資さんうどん", "feel": "C", "application": "未受領" }
+                ]
+            },
+            {
+                "id": "prop-1782277721867",
+                "name": "新青梅街道沿いテス倉庫（解体予定）",
+                "type": "建て貸し",
+                "rank": "C",
+                "address": "東京都武蔵村山市三ツ木２－１８－１２",
+                "area": 1322.11,
+                "zone": "一種住居",
+                "landowners": ["山崎康史"],
+                "consent": "承諾済",
+                "visits": [{ "date": "2026-06-24", "detail": "物件基本情報を確認、推進プロセスを開始。" }],
+                "tenants": [{ "name": "モスバーガー", "feel": "B", "application": "未受領" }],
+                "brokerName": "JA村山"
+            },
+            {
+                "id": "prop-1782279643669",
+                "name": "新青梅街道沿いロードサイド",
+                "type": "土地",
+                "rank": "C",
+                "address": "東京都武蔵村山市中央１丁目４３－２",
+                "area": 1122,
+                "landowners": ["加藤雅江"],
+                "consent": "承諾済",
+                "visits": [{ "date": "2026-06-24", "detail": "物件基本情報を確認、推進プロセスを開始。" }],
+                "brokerName": "JA村山"
+            },
+            {
+                "id": "prop-1782292762867",
+                "name": "フェドラ佐野 居抜き124坪",
+                "type": "居抜き",
+                "rank": "A",
+                "address": "栃木県佐野市高荻町1341",
+                "buildingArea": 410,
+                "landowners": ["株式会社フェドラ"],
+                "consent": "承諾済",
+                "visits": [
+                    { "date": "2026-06-24", "detail": "すかいらーくより検討したい旨の連絡あり..." },
+                    { "date": "2026-07-01", "detail": "GLI樋口社長がフェドラ社長と面談、現在検討しているのは４社..." }
+                ],
+                "tenants": [
+                    { "name": "バーガーキング", "feel": "A", "application": "未受領" },
+                    { "name": "資さんうどん", "feel": "B", "application": "受領" }
+                ],
+                "brokerName": "GLI"
+            },
+            {
+                "id": "prop-1782968309473",
+                "name": "愛知県半田市バーガーキング",
+                "type": "建て貸し",
+                "rank": "A",
+                "address": "愛知県半田市旭町5丁目８－１",
+                "buildingArea": 200,
+                "landowners": ["三菱HCキャピタル"],
+                "consent": "承諾済",
+                "visits": [{ "date": "2026-06-30", "detail": "出店決定" }],
+                "tenants": [{ "name": "バーガーキング", "feel": "A", "application": "受領" }]
+            },
+            {
+                "id": "prop-1783643782447",
+                "name": "瑞穂町 新青梅街道沿いロードサイド",
+                "type": "建て貸し",
+                "rank": "C",
+                "address": "東京都西多摩郡瑞穂町殿ケ谷７７８−２",
+                "area": 952,
+                "zone": "一種住居",
+                "landowners": ["保坂様"],
+                "consent": "承諾済",
+                "visits": [{ "date": "2026-07-08", "detail": "保坂様面談、モスバーガーをテナント候補として選定。" }],
+                "tenants": [{ "name": "モスバーガー", "feel": "C", "application": "未受領" }]
+            },
+            {
+                "id": "prop-1784594392283",
+                "name": "昭島市中神町（がってん寿司向け物件）",
+                "type": "建て貸し",
+                "rank": "A",
+                "address": "東京都昭島市中神町１３７５－２",
+                "area": 1985,
+                "zone": "準工業地域",
+                "landowners": ["田中様"],
+                "consent": "未承諾",
+                "visits": [{ "date": "2026-07-17", "detail": "駐車場を管理している佐藤商会に確認。" }],
+                "tenants": [
+                    { "name": "がってん寿司", "feel": "C", "application": "未受領" },
+                    { "name": "シャトレーゼ", "feel": "B", "application": "未受領" }
+                ],
+                "brokerName": "佐藤商会"
+            }
+        ];
+
+        // State Variables
+        let properties = [];
+        let projects = [];
+        let propertyViewMode = 'table'; // 'table' or 'kanban'
+        let projectViewMode = 'table'; // 'table' or 'kanban'
+        let sectorChart = null;
+
+        // --- APPLICATION INITIALIZATION ---
+        window.onload = function() {
+            loadStoredData();
+            initChart();
+            renderAll();
+        };
+
+        function loadStoredData() {
+            const savedProps = localStorage.getItem('cpo_integrated_properties');
+            const savedProjs = localStorage.getItem('cpo_integrated_projects');
+
+            if (savedProps && savedProjs) {
+                properties = JSON.parse(savedProps);
+                projects = JSON.parse(savedProjs);
+            } else {
+                loadDefaultPromptData(false);
+            }
+        }
+
+        function saveData() {
+            localStorage.setItem('cpo_integrated_properties', JSON.stringify(properties));
+            localStorage.setItem('cpo_integrated_projects', JSON.stringify(projects));
+            renderAll();
+        }
+
+        // LOAD PRESET PROMPT DATA & SMART LINKING
+        function loadDefaultPromptData(showToast = true) {
+            properties = JSON.parse(JSON.stringify(DEFAULT_PROMPT_PROPERTIES));
+            projects = JSON.parse(JSON.stringify(DEFAULT_PROMPT_PROJECTS));
+
+            // Perform Smart Auto-linking between Projects and Properties
+            projects.forEach(proj => {
+                let matched = null;
+
+                // 1. Exact or partial Address match
+                if (proj.address && proj.address.length > 3) {
+                    matched = properties.find(p => p.address && (p.address.includes(proj.address) || proj.address.includes(p.address)));
+                }
+
+                // 2. Keyword/Name Match
+                if (!matched && proj.projectName) {
+                    const normProjName = proj.projectName.replace(/新装工事|改修工事|新築工事/g, '').trim();
+                    matched = properties.find(p => p.name.includes(normProjName) || normProjName.includes(p.name));
+                }
+
+                if (matched) {
+                    proj.propertyId = matched.id;
+                } else {
+                    // Create unlinked property if needed or keep blank
+                    proj.propertyId = "";
+                }
+            });
+
+            saveData();
+            if (showToast) {
+                showNotification('ご提示いただいた案件・物件データを一括統合ロードしました！');
+            }
+        }
+
+        // NAVIGATION TAB SWITCHING
+        function switchTab(tabId) {
+            ['dashboard', 'properties', 'projects', 'import-export'].forEach(id => {
+                const view = document.getElementById(`view-${id}`);
+                const nav = document.getElementById(`nav-${id}`);
+                if (id === tabId) {
+                    view.classList.remove('hidden');
+                    nav.className = 'nav-btn w-full flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-all text-white bg-brand-600 shadow-md';
+                } else {
+                    view.classList.add('hidden');
+                    nav.className = 'nav-btn w-full flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-all text-slate-400 hover:text-slate-100 hover:bg-slate-800';
+                }
+            });
+
+            const titles = {
+                'dashboard': '統合ダッシュボード概要',
+                'properties': '物件開発一覧・現地調査管理',
+                'projects': '工事案件一覧・受託管理',
+                'import-export': 'データインポート & 統合ハブ'
+            };
+            document.getElementById('page-title').textContent = titles[tabId];
+            renderAll();
+        }
+
+        function renderAll() {
+            updateBadges();
+            renderDashboard();
+            renderProperties();
+            renderProjects();
+            populatePropertyDropdowns();
+        }
+
+        function updateBadges() {
+            document.getElementById('badge-property-count').textContent = properties.length;
+            document.getElementById('badge-project-count').textContent = projects.length;
+        }
+
+        // --- DASHBOARD RENDERER ---
+        function renderDashboard() {
+            document.getElementById('dash-total-properties').textContent = properties.length;
+            document.getElementById('dash-rank-a-properties').textContent = properties.filter(p => p.rank === 'A').length;
+
+            document.getElementById('dash-total-projects').textContent = projects.length;
+            const linkedCount = projects.filter(p => p.propertyId && properties.some(prop => prop.id === p.propertyId)).length;
+            document.getElementById('dash-linked-projects').textContent = linkedCount;
+
+            const totalAmount = projects.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+            document.getElementById('dash-total-amount').textContent = `¥${totalAmount.toLocaleString()}`;
+
+            const avgProfit = projects.length > 0 
+                ? (projects.reduce((sum, p) => sum + (Number(p.profitRate) || 0), 0) / projects.length).toFixed(1)
+                : 0;
+            document.getElementById('dash-avg-profit').textContent = `${avgProfit}%`;
+
+            // Recent Table
+            const recentTbody = document.getElementById('dash-recent-projects-list');
+            recentTbody.innerHTML = '';
+
+            const recent = [...projects].slice(0, 6);
+            if (recent.length === 0) {
+                recentTbody.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-slate-400">データがありません</td></tr>`;
+            } else {
+                recent.forEach(p => {
+                    const linkedProp = properties.find(prop => prop.id === p.propertyId);
+                    const propName = linkedProp ? linkedProp.name : '<span class="text-rose-500 text-xs font-semibold">未紐付け</span>';
+
+                    recentTbody.innerHTML += `
+                        <tr class="hover:bg-slate-50 transition cursor-pointer" onclick="openProjectEdit('${p.id}')">
+                            <td class="py-2.5 px-3 font-bold text-slate-800 text-xs">${escapeHtml(p.projectName)}</td>
+                            <td class="py-2.5 px-3 text-xs text-slate-600">${escapeHtml(p.clientName || '-')}</td>
+                            <td class="py-2.5 px-3 text-xs text-slate-600">${propName}</td>
+                            <td class="py-2.5 px-3"><span class="text-[10px] px-2 py-0.5 rounded font-black ${getRankBadgeClass(p.rank)}">${p.rank || '-'}</span></td>
+                            <td class="py-2.5 px-3 text-right font-bold text-slate-800 text-xs">¥${(Number(p.amount) || 0).toLocaleString()}</td>
+                        </tr>
+                    `;
+                });
+            }
+
+            updateChart();
+        }
+
+        // CHART ENGINE
+        function initChart() {
+            const ctx = document.getElementById('chart-sector-status').getContext('2d');
+            sectorChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['飲食', '物販', '幼保', 'その他'],
+                    datasets: [{
+                        data: [0, 0, 0, 0],
+                        backgroundColor: ['#2563eb', '#10b981', '#f59e0b', '#64748b']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } } }
+                }
+            });
+        }
+
+        function updateChart() {
+            if (!sectorChart) return;
+            const sectors = ['飲食', '物販', '幼保', 'その他'];
+            const counts = sectors.map(sec => projects.filter(p => p.sector === sec || (sec === 'その他' && !['飲食','物販','幼保'].includes(p.sector))).length);
+            sectorChart.data.datasets[0].data = counts;
+            sectorChart.update();
+        }
+
+        // --- PROPERTIES VIEW CONTROLLERS ---
+        function setPropertyViewMode(mode) {
+            propertyViewMode = mode;
+            const kanbanBtn = document.getElementById('btn-prop-view-kanban');
+            const tableBtn = document.getElementById('btn-prop-view-table');
+            const kanbanView = document.getElementById('properties-kanban-view');
+            const tableView = document.getElementById('properties-table-view');
+
+            if (mode === 'kanban') {
+                kanbanView.classList.remove('hidden');
+                tableView.classList.add('hidden');
+                kanbanBtn.className = 'px-3 py-1.5 rounded-md text-xs font-semibold transition bg-white text-slate-800 shadow-sm';
+                tableBtn.className = 'px-3 py-1.5 rounded-md text-xs font-semibold transition text-slate-600 hover:text-slate-900';
+            } else {
+                kanbanView.classList.add('hidden');
+                tableView.classList.remove('hidden');
+                tableBtn.className = 'px-3 py-1.5 rounded-md text-xs font-semibold transition bg-white text-slate-800 shadow-sm';
+                kanbanBtn.className = 'px-3 py-1.5 rounded-md text-xs font-semibold transition text-slate-600 hover:text-slate-900';
+            }
+            renderProperties();
+        }
+
+        function renderProperties() {
+            const search = document.getElementById('prop-search').value.toLowerCase();
+            const rankFilter = document.getElementById('prop-rank-filter').value;
+            const typeFilter = document.getElementById('prop-type-filter').value;
+
+            const filtered = properties.filter(p => {
+                const matchSearch = p.name.toLowerCase().includes(search) || 
+                                    (p.address && p.address.toLowerCase().includes(search)) || 
+                                    ((p.landowners || []).some(l => l.toLowerCase().includes(search)));
+                const matchRank = rankFilter === 'ALL' || p.rank === rankFilter;
+                const matchType = typeFilter === 'ALL' || p.type === typeFilter;
+                return matchSearch && matchRank && matchType;
+            });
+
+            if (propertyViewMode === 'table') {
+                renderPropertyTableView(filtered);
+            } else {
+                renderPropertyKanbanView(filtered);
+            }
+        }
+
+        function renderPropertyTableView(items) {
+            const tbody = document.getElementById('properties-table-body');
+            tbody.innerHTML = '';
+
+            if (items.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="9" class="text-center py-6 text-slate-400">条件に一致する物件開発データがありません</td></tr>`;
+                return;
+            }
+
+            items.forEach(p => {
+                const linkedProjects = projects.filter(proj => proj.propertyId === p.id);
+                const totalProjAmount = linkedProjects.reduce((sum, pr) => sum + (Number(pr.amount) || 0), 0);
+                const areaStr = p.area ? `${p.area} ㎡` : (p.buildingArea ? `${p.buildingArea} 坪` : '-');
+                const landownersStr = (p.landowners || []).join(', ') || '-';
+
+                tbody.innerHTML += `
+                    <tr class="hover:bg-slate-50 transition">
+                        <td class="py-3 px-4 font-bold text-slate-800 hover:text-brand-600 cursor-pointer" onclick="openPropertyDetail('${p.id}')">${escapeHtml(p.name)}</td>
+                        <td class="py-3 px-4 text-xs font-medium"><span class="bg-blue-50 text-blue-700 text-xs font-bold px-2 py-0.5 rounded border border-blue-200">${escapeHtml(p.type || '開発物件')}</span></td>
+                        <td class="py-3 px-4"><span class="text-[10px] font-black px-2 py-0.5 rounded ${getRankBadgeClass(p.rank)}">${p.rank || '-'}</span></td>
+                        <td class="py-3 px-4 text-xs text-slate-600">${escapeHtml(p.address || '-')}</td>
+                        <td class="py-3 px-4 text-xs font-medium text-slate-700">${areaStr}</td>
+                        <td class="py-3 px-4 text-xs text-slate-600">${escapeHtml(landownersStr)}</td>
+                        <td class="py-3 px-4 text-xs font-semibold ${p.consent === '承諾済' ? 'text-emerald-600' : 'text-amber-600'}">${escapeHtml(p.consent || '-')}</td>
+                        <td class="py-3 px-4 text-center text-xs font-bold text-brand-600">
+                            ${linkedProjects.length} 件
+                            ${linkedProjects.length > 0 ? `<span class="block text-[10px] text-slate-400 font-normal">(¥${(totalProjAmount/10000).toLocaleString()}万)</span>` : ''}
+                        </td>
+                        <td class="py-3 px-4 text-center">
+                            <button onclick="openPropertyDetail('${p.id}')" class="p-1 text-slate-400 hover:text-brand-600" title="詳細"><i class="fa-solid fa-eye"></i></button>
+                            <button onclick="openPropertyEdit('${p.id}')" class="p-1 text-slate-400 hover:text-brand-600 ml-1" title="編集"><i class="fa-solid fa-pen"></i></button>
+                            <button onclick="deleteProperty('${p.id}')" class="p-1 text-slate-400 hover:text-rose-600 ml-1" title="削除"><i class="fa-solid fa-trash-can"></i></button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        function renderPropertyKanbanView(items) {
+            const container = document.getElementById('properties-kanban-view');
+            container.innerHTML = '';
+
+            ['A', 'B', 'C'].forEach(rank => {
+                const rankItems = items.filter(p => p.rank === rank);
+
+                let colHtml = `
+                    <div class="bg-slate-200/60 p-4 rounded-2xl flex flex-col kanban-col shrink-0 w-full">
+                        <div class="flex items-center justify-between mb-3 px-1">
+                            <h4 class="font-extrabold text-slate-700 text-sm flex items-center gap-2">
+                                <span class="px-2 py-0.5 rounded text-xs font-black ${getRankBadgeClass(rank)}">${rank}</span>
+                            </h4>
+                            <span class="bg-slate-300 text-slate-700 text-xs px-2.5 py-0.5 rounded-full font-bold">${rankItems.length} 件</span>
+                        </div>
+                        <div class="space-y-3 flex-1 overflow-y-auto">
+                `;
+
+                rankItems.forEach(p => {
+                    const linkedProjects = projects.filter(proj => proj.propertyId === p.id);
+                    const totalProjAmount = linkedProjects.reduce((sum, pr) => sum + (Number(pr.amount) || 0), 0);
+                    const areaStr = p.area ? `${p.area} ㎡` : (p.buildingArea ? `${p.buildingArea} 坪` : '-');
+
+                    colHtml += `
+                        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition space-y-2 cursor-pointer" onclick="openPropertyDetail('${p.id}')">
+                            <div class="flex items-center justify-between gap-1">
+                                <span class="bg-blue-50 text-blue-700 text-[10px] font-bold px-2 py-0.5 rounded border border-blue-200">${escapeHtml(p.type || '開発物件')}</span>
+                                <span class="text-[10px] font-semibold px-2 py-0.5 rounded ${p.consent === '承諾済' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-amber-50 text-amber-700 border border-amber-200'}">${escapeHtml(p.consent || '未承諾')}</span>
+                            </div>
+                            <h5 class="font-bold text-slate-800 text-sm leading-snug hover:text-brand-600">${escapeHtml(p.name)}</h5>
+                            <p class="text-xs text-slate-500 flex items-center gap-1 truncate">
+                                <i class="fa-solid fa-location-dot text-slate-400"></i> ${escapeHtml(p.address || '住所未設定')}
+                            </p>
+                            <div class="pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
+                                <span class="text-slate-500">面積: <span class="font-bold text-slate-700">${areaStr}</span></span>
+                                <span class="text-brand-600 font-bold">工事: ${linkedProjects.length}件 <span class="text-slate-400 text-[10px] font-normal">(¥${(totalProjAmount/10000).toLocaleString()}万)</span></span>
+                            </div>
+                            <div class="flex justify-end gap-2 pt-1 border-t border-slate-50">
+                                <button onclick="event.stopPropagation(); openPropertyEdit('${p.id}')" class="text-xs text-slate-400 hover:text-brand-600"><i class="fa-solid fa-pen mr-1"></i>編集</button>
+                                <button onclick="event.stopPropagation(); deleteProperty('${p.id}')" class="text-xs text-slate-400 hover:text-rose-600"><i class="fa-solid fa-trash-can mr-1"></i>削除</button>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                colHtml += `
+                        </div>
+                    </div>
+                `;
+
+                container.innerHTML += colHtml;
+            });
+        }
+
+        function saveProperty(e) {
+            e.preventDefault();
+            const id = document.getElementById('prop-id').value;
+            const name = document.getElementById('prop-name').value;
+            const type = document.getElementById('prop-type').value;
+            const rank = document.getElementById('prop-rank').value;
+            const consent = document.getElementById('prop-consent').value;
+            const address = document.getElementById('prop-address').value;
+            const area = document.getElementById('prop-area').value;
+            const buildingArea = document.getElementById('prop-buildingArea').value;
+            const zone = document.getElementById('prop-zone').value;
+            const landowners = document.getElementById('prop-landowners').value.split(',').map(s => s.trim()).filter(Boolean);
+            const brokerName = document.getElementById('prop-brokerName').value;
+
+            if (id) {
+                const index = properties.findIndex(p => p.id === id);
+                if (index !== -1) {
+                    properties[index] = { ...properties[index], name, type, rank, consent, address, area, buildingArea, zone, landowners, brokerName };
+                }
+            } else {
+                const newProp = {
+                    id: 'prop-' + Date.now(),
+                    name, type, rank, consent, address, area, buildingArea, zone, landowners, brokerName,
+                    visits: [], tenants: []
+                };
+                properties.push(newProp);
+            }
+
+            saveData();
+            closeModal('propertyModal');
+            showNotification('物件開発情報を保存しました');
+        }
+
+        function openPropertyEdit(id) {
+            const p = properties.find(prop => prop.id === id);
+            if (!p) return;
+
+            document.getElementById('propModalTitle').textContent = '物件開発情報の編集';
+            document.getElementById('prop-id').value = p.id;
+            document.getElementById('prop-name').value = p.name || '';
+            document.getElementById('prop-type').value = p.type || '建て貸し';
+            document.getElementById('prop-rank').value = p.rank || 'A';
+            document.getElementById('prop-consent').value = p.consent || '承諾済';
+            document.getElementById('prop-address').value = p.address || '';
+            document.getElementById('prop-area').value = p.area || '';
+            document.getElementById('prop-buildingArea').value = p.buildingArea || '';
+            document.getElementById('prop-zone').value = p.zone || '';
+            document.getElementById('prop-landowners').value = (p.landowners || []).join(', ');
+            document.getElementById('prop-brokerName').value = p.brokerName || '';
+
+            openModal('propertyModal');
+        }
+
+        function deleteProperty(id) {
+            if (!confirm('この物件開発データを削除しますか？\n（※ 関連する工事案件は未紐付け状態として残ります）')) return;
+            properties = properties.filter(p => p.id !== id);
+            saveData();
+            showNotification('物件データを削除しました');
+        }
+
+        function openPropertyDetail(id) {
+            const p = properties.find(prop => prop.id === id);
+            if (!p) return;
+
+            document.getElementById('prop-detail-title').textContent = p.name;
+            document.getElementById('prop-detail-rank-badge').textContent = p.rank || 'A';
+            document.getElementById('prop-detail-type').textContent = p.type || '-';
+            document.getElementById('prop-detail-consent').textContent = p.consent || '-';
+            document.getElementById('prop-detail-areas').textContent = `${p.area ? p.area + ' ㎡' : '-'} / ${p.buildingArea ? p.buildingArea + ' 坪' : '-'}`;
+            document.getElementById('prop-detail-zone').textContent = p.zone || '-';
+            document.getElementById('prop-detail-address').textContent = p.address || '未設定';
+            document.getElementById('prop-detail-landowners').textContent = (p.landowners || []).join(', ') || '-';
+
+            document.getElementById('btn-add-project-to-prop').onclick = () => {
+                closeModal('propertyDetailModal');
+                openProjectModalWithProperty(p.id);
+            };
+
+            // Visits log
+            const visitsEl = document.getElementById('prop-detail-visits');
+            visitsEl.innerHTML = '';
+            if (!p.visits || p.visits.length === 0) {
+                visitsEl.innerHTML = `<p class="text-slate-400 text-xs">訪問履歴はまだありません</p>`;
+            } else {
+                p.visits.forEach(v => {
+                    visitsEl.innerHTML += `
+                        <div class="bg-slate-50 p-2 rounded-lg text-xs border border-slate-100">
+                            <span class="font-bold text-brand-600 mr-2">${v.date}</span>
+                            <span class="text-slate-700">${escapeHtml(v.detail)}</span>
+                        </div>
+                    `;
+                });
+            }
+
+            // Tenants log
+            const tenantsEl = document.getElementById('prop-detail-tenants');
+            tenantsEl.innerHTML = '';
+            if (!p.tenants || p.tenants.length === 0) {
+                tenantsEl.innerHTML = `<p class="text-slate-400 text-xs">出店候補テナントは登録されていません</p>`;
+            } else {
+                p.tenants.forEach(t => {
+                    tenantsEl.innerHTML += `
+                        <div class="bg-slate-50 p-2 rounded-lg text-xs border border-slate-100 flex items-center justify-between">
+                            <span class="font-bold text-slate-800">${escapeHtml(t.name)}</span>
+                            <span class="text-[10px] px-2 py-0.5 rounded font-bold bg-amber-100 text-amber-800">感度: ${t.feel || '-'} (${t.application || '-'})</span>
+                        </div>
+                    `;
+                });
+            }
+
+            // Linked Projects
+            const linked = projects.filter(proj => proj.propertyId === p.id);
+            const listEl = document.getElementById('prop-linked-projects-list');
+            listEl.innerHTML = '';
+
+            if (linked.length === 0) {
+                listEl.innerHTML = `<div class="p-4 bg-slate-50 text-center text-slate-400 text-xs rounded-lg">現在この物件に紐づいている工事案件はありません。</div>`;
+            } else {
+                linked.forEach(proj => {
+                    listEl.innerHTML += `
+                        <div class="p-3 bg-white border border-slate-200 rounded-xl flex items-center justify-between hover:border-brand-300 transition">
+                            <div class="space-y-1">
+                                <div class="flex items-center gap-2">
+                                    <span class="text-[10px] font-black px-2 py-0.5 rounded ${getRankBadgeClass(proj.rank)}">${proj.rank || 'C'}</span>
+                                    <h5 class="font-bold text-slate-800 text-sm hover:text-brand-600 cursor-pointer" onclick="closeModal('propertyDetailModal'); openProjectEdit('${proj.id}')">${escapeHtml(proj.projectName)}</h5>
+                                </div>
+                                <p class="text-xs text-slate-500">クライアント: ${escapeHtml(proj.clientName || '未設定')} | 金額: ¥${(Number(proj.amount) || 0).toLocaleString()} (粗利 ${proj.profitRate || 0}%)</p>
+                            </div>
+                            <button onclick="closeModal('propertyDetailModal'); openProjectEdit('${proj.id}')" class="text-slate-400 hover:text-brand-600 text-xs font-bold px-2 py-1">編集 &rarr;</button>
+                        </div>
+                    `;
+                });
+            }
+
+            openModal('propertyDetailModal');
+        }
+
+        // --- PROJECTS CONTROLLERS ---
+        function setProjectViewMode(mode) {
+            projectViewMode = mode;
+            const kanbanBtn = document.getElementById('btn-view-kanban');
+            const tableBtn = document.getElementById('btn-view-table');
+            const kanbanView = document.getElementById('projects-kanban-view');
+            const tableView = document.getElementById('projects-table-view');
+
+            if (mode === 'kanban') {
+                kanbanView.classList.remove('hidden');
+                tableView.classList.add('hidden');
+                kanbanBtn.className = 'px-3 py-1.5 rounded-md text-xs font-semibold transition bg-white text-slate-800 shadow-sm';
+                tableBtn.className = 'px-3 py-1.5 rounded-md text-xs font-semibold transition text-slate-600 hover:text-slate-900';
+            } else {
+                kanbanView.classList.add('hidden');
+                tableView.classList.remove('hidden');
+                tableBtn.className = 'px-3 py-1.5 rounded-md text-xs font-semibold transition bg-white text-slate-800 shadow-sm';
+                kanbanBtn.className = 'px-3 py-1.5 rounded-md text-xs font-semibold transition text-slate-600 hover:text-slate-900';
+            }
+            renderProjects();
+        }
+
+        function renderProjects() {
+            const search = document.getElementById('proj-search').value.toLowerCase();
+            const propFilter = document.getElementById('proj-property-filter').value;
+
+            const filtered = projects.filter(p => {
+                const matchSearch = p.projectName.toLowerCase().includes(search) || 
+                                    (p.clientName && p.clientName.toLowerCase().includes(search)) ||
+                                    (p.address && p.address.toLowerCase().includes(search));
+                const matchProp = propFilter === 'ALL' || p.propertyId === propFilter;
+                return matchSearch && matchProp;
+            });
+
+            if (projectViewMode === 'table') {
+                renderTableView(filtered);
+            } else {
+                renderKanbanView(filtered);
+            }
+        }
+
+        function renderTableView(items) {
+            const tbody = document.getElementById('projects-table-body');
+            tbody.innerHTML = '';
+
+            if (items.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="9" class="text-center py-6 text-slate-400">条件に一致する工事案件がありません</td></tr>`;
+                return;
+            }
+
+            items.forEach(p => {
+                const prop = properties.find(pr => pr.id === p.propertyId);
+                const propName = prop ? prop.name : '<span class="text-rose-500 text-xs font-semibold">未紐付け</span>';
+
+                tbody.innerHTML += `
+                    <tr class="hover:bg-slate-50 transition">
+                        <td class="py-3 px-4 font-bold text-slate-800 hover:text-brand-600 cursor-pointer" onclick="openProjectEdit('${p.id}')">${escapeHtml(p.projectName)}</td>
+                        <td class="py-3 px-4 text-xs font-medium text-slate-700">${escapeHtml(p.clientName || '-')}</td>
+                        <td class="py-3 px-4 text-xs text-slate-600">${propName}</td>
+                        <td class="py-3 px-4 text-xs">${escapeHtml(p.workType || p.sector || '-')}</td>
+                        <td class="py-3 px-4"><span class="text-[10px] font-black px-2 py-0.5 rounded ${getRankBadgeClass(p.rank)}">${p.rank || '-'}</span></td>
+                        <td class="py-3 px-4 text-right font-bold text-slate-800 text-xs">¥${(Number(p.amount) || 0).toLocaleString()}</td>
+                        <td class="py-3 px-4 text-center font-bold text-emerald-600 text-xs">${p.profitRate || 0}%</td>
+                        <td class="py-3 px-4 text-xs text-slate-600">${escapeHtml(p.contractStatus || '未締結')}</td>
+                        <td class="py-3 px-4 text-center">
+                            <button onclick="openProjectEdit('${p.id}')" class="p-1 text-slate-400 hover:text-brand-600"><i class="fa-solid fa-pen"></i></button>
+                            <button onclick="deleteProject('${p.id}')" class="p-1 text-slate-400 hover:text-rose-600 ml-1"><i class="fa-solid fa-trash-can"></i></button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        function renderKanbanView(items) {
+            const container = document.getElementById('projects-kanban-view');
+            container.innerHTML = '';
+
+            ['A', 'B', 'C'].forEach(rank => {
+                const rankItems = items.filter(p => p.rank === rank);
+
+                let colHtml = `
+                    <div class="bg-slate-200/60 p-4 rounded-2xl flex flex-col kanban-col shrink-0 w-full">
+                        <div class="flex items-center justify-between mb-3 px-1">
+                            <h4 class="font-extrabold text-slate-700 text-sm flex items-center gap-2">
+                                <span class="px-2 py-0.5 rounded text-xs font-black ${getRankBadgeClass(rank)}">${rank}</span>
+                            </h4>
+                            <span class="bg-slate-300 text-slate-700 text-xs px-2.5 py-0.5 rounded-full font-bold">${rankItems.length} 件</span>
+                        </div>
+                        <div class="space-y-3 flex-1 overflow-y-auto">
+                `;
+
+                rankItems.forEach(p => {
+                    const prop = properties.find(pr => pr.id === p.propertyId);
+                    const propName = prop ? prop.name : '未紐付け物件';
+
+                    colHtml += `
+                        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition space-y-2 cursor-pointer" onclick="openProjectEdit('${p.id}')">
+                            <div class="flex items-center justify-between gap-1">
+                                <span class="text-[10px] font-bold text-slate-400">${escapeHtml(p.clientName || 'クライアント未設定')}</span>
+                                <span class="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-semibold">${escapeHtml(p.sector || '飲食')}</span>
+                            </div>
+                            <h5 class="font-bold text-slate-800 text-sm leading-snug hover:text-brand-600">${escapeHtml(p.projectName)}</h5>
+                            <p class="text-xs font-medium text-brand-600 flex items-center gap-1 truncate">
+                                <i class="fa-solid fa-building text-slate-400"></i> ${escapeHtml(propName)}
+                            </p>
+                            <div class="pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
+                                <span class="text-slate-500 font-semibold">粗利: <span class="text-emerald-600">${p.profitRate || 0}%</span></span>
+                                <span class="font-extrabold text-slate-800">¥${(Number(p.amount) || 0).toLocaleString()}</span>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                colHtml += `
+                        </div>
+                    </div>
+                `;
+
+                container.innerHTML += colHtml;
+            });
+        }
+
+        function populatePropertyDropdowns() {
+            const selectProjModal = document.getElementById('proj-property-id');
+            const selectFilter = document.getElementById('proj-property-filter');
+
+            let optionsHtml = `<option value="">-- 物件開発を選択 (未紐付けも可) --</option>`;
+            properties.forEach(p => {
+                optionsHtml += `<option value="${p.id}">${escapeHtml(p.name)} [${p.rank}]</option>`;
+            });
+            selectProjModal.innerHTML = optionsHtml;
+
+            let filterHtml = `<option value="ALL">すべての紐付け物件</option>`;
+            properties.forEach(p => {
+                filterHtml += `<option value="${p.id}">${escapeHtml(p.name)}</option>`;
+            });
+            selectFilter.innerHTML = filterHtml;
+        }
+
+        function openProjectModalWithProperty(propertyId) {
+            document.getElementById('projectForm').reset();
+            document.getElementById('projModalTitle').textContent = '工事案件の登録';
+            document.getElementById('proj-id').value = '';
+            document.getElementById('proj-property-id').value = propertyId;
+            openModal('projectModal');
+        }
+
+        function saveProject(e) {
+            e.preventDefault();
+            const id = document.getElementById('proj-id').value;
+            const projectName = document.getElementById('proj-name').value;
+            const propertyId = document.getElementById('proj-property-id').value;
+            const clientName = document.getElementById('proj-client').value;
+            const sector = document.getElementById('proj-sector').value;
+            const workType = document.getElementById('proj-workType').value;
+            const rank = document.getElementById('proj-rank').value;
+            const contractStatus = document.getElementById('proj-contractStatus').value;
+            const amount = document.getElementById('proj-amount').value;
+            const profitRate = document.getElementById('proj-profitRate').value;
+            const billingMonth = document.getElementById('proj-billingMonth').value;
+            const address = document.getElementById('proj-address').value;
+            const notes = document.getElementById('proj-notes').value;
+
+            if (id) {
+                const index = projects.findIndex(p => p.id === id);
+                if (index !== -1) {
+                    projects[index] = { ...projects[index], projectName, propertyId, clientName, sector, workType, rank, contractStatus, amount, profitRate, billingMonth, address, notes };
+                }
+            } else {
+                const newProj = {
+                    id: 'p_' + Date.now(),
+                    projectName, propertyId, clientName, sector, workType, rank, contractStatus, amount, profitRate, billingMonth, address, notes,
+                    status: 'active'
+                };
+                projects.push(newProj);
+            }
+
+            saveData();
+            closeModal('projectModal');
+            showNotification('工事案件を保存しました');
+        }
+
+        function openProjectEdit(id) {
+            const p = projects.find(proj => proj.id === id);
+            if (!p) return;
+
+            document.getElementById('projModalTitle').textContent = '工事案件の編集';
+            document.getElementById('proj-id').value = p.id;
+            document.getElementById('proj-name').value = p.projectName || '';
+            document.getElementById('proj-property-id').value = p.propertyId || '';
+            document.getElementById('proj-client').value = p.clientName || '';
+            document.getElementById('proj-sector').value = p.sector || '飲食';
+            document.getElementById('proj-workType').value = p.workType || '';
+            document.getElementById('proj-rank').value = p.rank || 'A';
+            document.getElementById('proj-contractStatus').value = p.contractStatus || '未締結';
+            document.getElementById('proj-amount').value = p.amount || '';
+            document.getElementById('proj-profitRate').value = p.profitRate || '';
+            document.getElementById('proj-billingMonth').value = p.billingMonth || '';
+            document.getElementById('proj-address').value = p.address || '';
+            document.getElementById('proj-notes').value = p.notes || '';
+
+            openModal('projectModal');
+        }
+
+        function deleteProject(id) {
+            if (!confirm('この工事案件を削除しますか？')) return;
+            projects = projects.filter(p => p.id !== id);
+            saveData();
+            showNotification('工事案件を削除しました');
+        }
+
+        // --- IMPORT / EXPORT ENGINE ---
+        function handleFileImport(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const parsed = JSON.parse(e.target.result);
+                    let importedPropsCount = 0;
+                    let importedProjsCount = 0;
+
+                    if (Array.isArray(parsed)) {
+                        // Projects Array Import
+                        parsed.forEach(projItem => {
+                            if (!projects.some(p => p.id === projItem.id)) {
+                                projects.push(projItem);
+                                importedProjsCount++;
+                            }
+                        });
+                    } else if (typeof parsed === 'object') {
+                        // Properties / Unified Object Import
+                        if (parsed.properties && Array.isArray(parsed.properties)) {
+                            parsed.properties.forEach(propItem => {
+                                if (!properties.some(p => p.id === propItem.id)) {
+                                    properties.push(propItem);
+                                    importedPropsCount++;
+                                }
+                            });
+                        }
+                        if (parsed.projects && Array.isArray(parsed.projects)) {
+                            parsed.projects.forEach(projItem => {
+                                if (!projects.some(p => p.id === projItem.id)) {
+                                    projects.push(projItem);
+                                    importedProjsCount++;
+                                }
+                            });
+                        }
+                    }
+
+                    saveData();
+                    const msgEl = document.getElementById('import-status-msg');
+                    msgEl.textContent = `✅ 工事案件 ${importedProjsCount} 件 / 物件開発 ${importedPropsCount} 件を取り込み統合完了しました！`;
+                    msgEl.classList.remove('hidden');
+                    showNotification('ファイルからデータを取り込み統合しました');
+
+                } catch (err) {
+                    alert('JSONファイルの解析に失敗しました。正しいデータ形式か確認してください。');
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function exportUnifiedData(format) {
+            if (format === 'json') {
+                const unifiedPackage = {
+                    version: "2.0",
+                    exportedAt: new Date().toISOString(),
+                    properties,
+                    projects
+                };
+                const blob = new Blob([JSON.stringify(unifiedPackage, null, 2)], { type: 'application/json' });
+                downloadBlob(blob, `Unified_Development_Projects_${getFormattedDate()}.json`);
+            } else if (format === 'csv') {
+                let csv = "案件ID,工事案件名,クライアント名,紐付け物件名,現場住所,工種,ランク,金額,粗利率(%),契約ステータス\n";
+                projects.forEach(p => {
+                    const prop = properties.find(pr => pr.id === p.propertyId);
+                    const propName = prop ? prop.name : '未紐付け';
+                    csv += `"${p.id}","${p.projectName}","${p.clientName || ''}","${propName}","${p.address || ''}","${p.workType || ''}","${p.rank || ''}","${p.amount || 0}","${p.profitRate || 0}","${p.contractStatus || ''}"\n`;
+                });
+                const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csv], { type: 'text/csv;charset=utf-8;' });
+                downloadBlob(blob, `Unified_Projects_Export_${getFormattedDate()}.csv`);
+            }
+        }
+
+        function downloadBlob(blob, filename) {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function confirmResetData() {
+            if (confirm('すべてのデータ（物件および工事案件）を初期化しますか？')) {
+                properties = [];
+                projects = [];
+                saveData();
+                showNotification('データを初期化しました');
+            }
+        }
+
+        // HELPERS
+        function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
+        function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+
+        function getRankBadgeClass(rank) {
+            switch (rank) {
+                case 'A': return 'bg-emerald-100 text-emerald-800 border border-emerald-300';
+                case 'B': return 'bg-blue-100 text-blue-800 border border-blue-300';
+                default: return 'bg-amber-100 text-amber-800 border border-amber-300';
+            }
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+
+        function getFormattedDate() {
+            const d = new Date();
+            return `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`;
+        }
+
+        function showNotification(msg) {
+            const toast = document.createElement('div');
+            toast.className = 'fixed bottom-5 right-5 bg-slate-900 text-white px-4 py-3 rounded-xl shadow-2xl z-50 text-sm font-semibold flex items-center gap-2 animate-bounce';
+            toast.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-400"></i> ${msg}`;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+    </script>
+</body>
+</html>
