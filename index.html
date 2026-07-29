@@ -1907,14 +1907,71 @@
             document.getElementById('backup-modal').classList.add('hidden');
         }
 
-        function exportFullData() {
-            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify({ properties, projects }, null, 2));
-            const downloadAnchor = document.createElement('a');
-            downloadAnchor.setAttribute("href", dataStr);
-            downloadAnchor.setAttribute("download", `物件・案件統合データ_${new Date().toISOString().slice(0,10)}.json`);
-            document.body.appendChild(downloadAnchor);
-            downloadAnchor.click();
-            downloadAnchor.remove();
+        async function exportFullData() {
+            const defaultName = `物件・案件統合データ_${new Date().toISOString().slice(0,10)}.json`;
+            const jsonStr = JSON.stringify({ properties, projects }, null, 2);
+
+            // モダンブラウザの File System Access API (showSaveFilePicker) を優先試行
+            if (typeof window.showSaveFilePicker === 'function') {
+                try {
+                    const handle = await window.showSaveFilePicker({
+                        suggestedName: defaultName,
+                        types: [{
+                            description: 'JSON Data File',
+                            accept: { 'application/json': ['.json'] },
+                        }],
+                    });
+                    const writable = await handle.createWritable();
+                    await writable.write(jsonStr);
+                    await writable.close();
+                    
+                    showNotification('データを指定した場所に正常に保存しました！');
+                    closeBackupModal();
+                    return;
+                } catch (err) {
+                    // ユーザーキャンセル時は処理中断
+                    if (err.name === 'AbortError') return;
+                    console.warn('showSaveFilePicker が制限されたため標準ダウンロードに切り替えます:', err);
+                }
+            }
+
+            // フォールバック：標準 Blob ダウンロード
+            try {
+                const blob = new Blob([jsonStr], { type: "application/json;charset=utf-8;" });
+                const url = URL.createObjectURL(blob);
+                const downloadAnchor = document.createElement('a');
+                downloadAnchor.href = url;
+                downloadAnchor.download = defaultName;
+                document.body.appendChild(downloadAnchor);
+                downloadAnchor.click();
+                
+                setTimeout(() => {
+                    document.body.removeChild(downloadAnchor);
+                    URL.revokeObjectURL(url);
+                }, 100);
+
+                showNotification('バックアップファイルをダウンロードしました。\n（※保存先ダイアログが出ない場合はブラウザの「ダウンロード設定」をご確認ください）');
+                closeBackupModal();
+            } catch (e) {
+                alert('ファイルの保存中にエラーが発生しました。');
+            }
+        }
+
+        // 通知メッセージ表示ヘパー
+        function showNotification(msg) {
+            const toast = document.createElement('div');
+            toast.className = 'fixed bottom-5 right-5 bg-slate-900 text-white px-5 py-3 rounded-2xl shadow-2xl z-50 text-xs sm:text-sm font-semibold flex items-center space-x-2 transition-all duration-300 transform translate-y-10 opacity-0';
+            toast.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-400 text-base"></i><span>${escapeHtml(msg).replace(/\n/g, '<br>')}</span>`;
+            document.body.appendChild(toast);
+
+            setTimeout(() => {
+                toast.classList.remove('translate-y-10', 'opacity-0');
+            }, 10);
+
+            setTimeout(() => {
+                toast.classList.add('translate-y-10', 'opacity-0');
+                setTimeout(() => toast.remove(), 300);
+            }, 4000);
         }
 
         function handleFileImport(e) {
