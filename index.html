@@ -675,7 +675,64 @@
     <!-- アプリケーション・ロジック JS -->
     <script>
         // ==========================================
-        // 1. 初期提供データ (案件データ + 物件開発データ)
+        // 市町村・地域レベルの座標辞書 & 高精度ジオコーディング
+        // ==========================================
+        const MUNICIPALITY_GEOCODE_MAP = {
+            "武蔵村山市": [35.7548, 139.3872],
+            "瑞穂町": [35.7725, 139.3556],
+            "昭島市": [35.7058, 139.3533],
+            "板橋区": [35.7368, 139.7042],
+            "佐野市": [36.3147, 139.5789],
+            "半田市": [34.8919, 136.9312],
+            "松戸市": [35.7877, 139.9038],
+            "船橋市": [35.6947, 140.0086],
+            "伊達市": [37.8182, 140.5631],
+            "郡山市": [37.3983, 140.3882],
+            "さいたま市": [35.8617, 139.6455],
+            "大宮区": [35.9082, 139.6012],
+            "松本市": [36.2380, 137.9720],
+            "新潟市": [37.9161, 139.0614],
+            "仙台市": [38.2682, 140.8694],
+            "東京都": [35.6895, 139.6917],
+            "栃木県": [36.5657, 139.8836],
+            "愛知県": [35.1802, 136.9066],
+            "千葉県": [35.6074, 140.1065],
+            "福島県": [37.7608, 140.4748],
+            "埼玉県": [35.8574, 139.6489],
+            "長野県": [36.6513, 138.1812],
+            "新潟県": [37.9022, 139.0236],
+            "宮城県": [38.2688, 140.8719]
+        };
+
+        // 住所文字列から即時に市町村レベルの緯度経度を判別する関数
+        function getCoordinatesForAddress(address) {
+            if (!address) return null;
+            for (const [key, coords] of Object.entries(MUNICIPALITY_GEOCODE_MAP)) {
+                if (address.includes(key)) {
+                    return coords;
+                }
+            }
+            return null;
+        }
+
+        // 国土地理院 API を用いたリアルタイム住所ジオコーディング
+        async function fetchGeocodeGSI(address) {
+            if (!address) return null;
+            try {
+                const res = await fetch(`https://msearch.gsi.go.jp/address-search-api/msearch?q=${encodeURIComponent(address)}`);
+                const data = await res.json();
+                if (data && data.length > 0 && data[0].geometry && data[0].geometry.coordinates) {
+                    const [lng, lat] = data[0].geometry.coordinates;
+                    return { lat, lng };
+                }
+            } catch (e) {
+                console.warn('Geocoding API error:', e);
+            }
+            return null;
+        }
+
+        // ==========================================
+        // 1. 初期提供データ (全13案件 + 物件開発データ)
         // ==========================================
         const INITIAL_PROPERTIES = [
             {
@@ -690,7 +747,7 @@
                 "confirmDate": "2026-06-23",
                 "landowners": ["森谷末子"],
                 "mortgage": false,
-                "consent": "承諾済",
+                "consent": "済",
                 "terms": "",
                 "visits": [
                     { "date": "2026-06-23", "detail": "森谷末子様、娘と立ち話したところ、弟が詳細分かっているとの事。" },
@@ -719,7 +776,7 @@
                 "confirmDate": "2026-06-24",
                 "landowners": ["山崎康史"],
                 "mortgage": false,
-                "consent": "承諾済",
+                "consent": "済",
                 "terms": "",
                 "visits": [
                     { "date": "2026-06-24", "detail": "物件基本情報を確認、推進プロセスを開始。" }
@@ -744,7 +801,7 @@
                 "confirmDate": "2026-06-24",
                 "landowners": ["加藤雅江"],
                 "mortgage": false,
-                "consent": "承諾済",
+                "consent": "済",
                 "terms": "",
                 "visits": [
                     { "date": "2026-06-24", "detail": "物件基本情報を確認、推進プロセスを開始。" }
@@ -766,7 +823,7 @@
                 "confirmDate": "2026-06-24",
                 "landowners": ["株式会社フェドラ"],
                 "mortgage": false,
-                "consent": "承諾済",
+                "consent": "済",
                 "terms": "",
                 "visits": [
                     { "date": "2026-06-24", "detail": "すかいらーくより検討したい旨の連絡あり、7月1日にGLI樋口社長がフェドラと面談予定。" },
@@ -794,7 +851,7 @@
                 "confirmDate": "2026-07-02",
                 "landowners": ["三菱HCキャピタル"],
                 "mortgage": false,
-                "consent": "承諾済",
+                "consent": "済",
                 "terms": "",
                 "visits": [
                     { "date": "2026-06-30", "detail": "出店決定" }
@@ -819,7 +876,7 @@
                 "confirmDate": "2026-07-10",
                 "landowners": ["保坂様"],
                 "mortgage": false,
-                "consent": "承諾済",
+                "consent": "済",
                 "terms": "７５万過去に申込有",
                 "visits": [
                     { "date": "2026-07-08", "detail": "保坂様面談、モスバーガーをテナント候補として選定。" }
@@ -844,7 +901,7 @@
                 "confirmDate": "2026-07-17",
                 "landowners": ["田中様"],
                 "mortgage": false,
-                "consent": "未承諾",
+                "consent": "未",
                 "terms": "",
                 "visits": [
                     { "date": "2026-07-17", "detail": "駐車場を管理している佐藤商会に確認。" }
@@ -871,51 +928,13 @@
                 "profitRate": 20,
                 "address": "栃木県佐野市高荻町1341",
                 "notes": "7月29日 現調 すかいらーく梅原さん、GLI樋口社長同行",
-                "rank": "A",
+                "rank": "C",
                 "contractDate": "2026-06-15",
                 "startDate": "2026-07-01",
                 "endDate": "2026-09-30",
-                "contractStatus": "工事契約",
+                "contractStatus": "未締結",
                 "lat": 36.29657,
                 "lng": 139.60517
-            },
-            {
-                "id": "p_1782121000008",
-                "propertyId": "",
-                "clientName": "株式会社すかいらーくホールディングス",
-                "projectName": "ガスト新潟駅前",
-                "sector": "飲食",
-                "workType": "新装工事",
-                "amount": 63500000,
-                "profitRate": 17,
-                "address": "新潟県新潟市",
-                "notes": "概査より1000万増加",
-                "rank": "A",
-                "contractDate": "2026-05-20",
-                "startDate": "2026-06-10",
-                "endDate": "2026-08-31",
-                "contractStatus": "設計施工契約",
-                "lat": 37.9161,
-                "lng": 139.0614
-            },
-            {
-                "id": "p_1782710827498",
-                "propertyId": "",
-                "clientName": "株式会社すかいらーくホールディングス",
-                "projectName": "くし葉イオンモール郡山",
-                "sector": "飲食",
-                "workType": "新装工事",
-                "amount": 40000000,
-                "profitRate": 15,
-                "address": "福島県伊達市",
-                "notes": "",
-                "rank": "B",
-                "contractDate": "2026-07-10",
-                "startDate": "2026-08-01",
-                "endDate": "2026-10-15",
-                "contractStatus": "未締結",
-                "lat": 37.8182,
-                "lng": 140.5631
             },
             {
                 "id": "p_1783644040624",
@@ -937,6 +956,82 @@
                 "lng": 139.93245
             },
             {
+                "id": "p_1783643951779",
+                "propertyId": "",
+                "clientName": "ジャクエツ",
+                "projectName": "仙台あけぼの幼稚園改修工事",
+                "sector": "幼保",
+                "workType": "改装工事",
+                "amount": 35000000,
+                "profitRate": 20,
+                "address": "宮城県仙台市",
+                "notes": "",
+                "rank": "C",
+                "contractDate": "",
+                "startDate": "",
+                "endDate": "",
+                "contractStatus": "未締結",
+                "lat": 38.2682,
+                "lng": 140.8694
+            },
+            {
+                "id": "p_1782710827498",
+                "propertyId": "",
+                "clientName": "株式会社すかいらーくホールディングス",
+                "projectName": "くし葉イオンモール郡山",
+                "sector": "飲食",
+                "workType": "新装工事",
+                "amount": 40000000,
+                "profitRate": 15,
+                "address": "福島県伊達市",
+                "notes": "",
+                "rank": "B",
+                "contractDate": "2026-07-10",
+                "startDate": "2026-08-01",
+                "endDate": "2026-10-15",
+                "contractStatus": "未締結",
+                "lat": 37.8182,
+                "lng": 140.5631
+            },
+            {
+                "id": "p_1782710725983",
+                "propertyId": "",
+                "clientName": "株式会社すかいらーくホールディングス",
+                "projectName": "しゃぶ葉イオンモール郡山",
+                "sector": "飲食",
+                "workType": "新装工事",
+                "amount": 60000000,
+                "profitRate": 15,
+                "address": "福島県伊達市",
+                "notes": "",
+                "rank": "B",
+                "contractDate": "2026-06-10",
+                "startDate": "2026-07-15",
+                "endDate": "2026-09-30",
+                "contractStatus": "注文書受領",
+                "lat": 37.8182,
+                "lng": 140.5631
+            },
+            {
+                "id": "p_1782710606085",
+                "propertyId": "",
+                "clientName": "OICグループ",
+                "projectName": "ロピア松本店新装工事",
+                "sector": "物販",
+                "workType": "新装工事",
+                "amount": 300000000,
+                "profitRate": 15,
+                "address": "長野県松本市",
+                "notes": "",
+                "rank": "C",
+                "contractDate": "",
+                "startDate": "2027-01-08",
+                "endDate": "2027-03-26",
+                "contractStatus": "未締結",
+                "lat": 36.2380,
+                "lng": 137.9720
+            },
+            {
                 "id": "p_1782709692173",
                 "propertyId": "",
                 "clientName": "富士薬品",
@@ -945,7 +1040,7 @@
                 "workType": "新築工事",
                 "amount": 200000000,
                 "profitRate": 20,
-                "address": "埼玉県さいたま市大宮区三橋４－１５0",
+                "address": "埼玉県さいたま市大宮区三橋４－１５０",
                 "notes": "７月上旬に役員会議",
                 "rank": "C",
                 "contractDate": "",
@@ -954,6 +1049,120 @@
                 "contractStatus": "未締結",
                 "lat": 35.9082,
                 "lng": 139.6012
+            },
+            {
+                "id": "p_1782292190359",
+                "propertyId": "",
+                "clientName": "株式会社すかいらーくホールディングス",
+                "projectName": "ガスト板橋南町新装工事 ",
+                "sector": "飲食",
+                "workType": "新装工事",
+                "amount": 60000000,
+                "profitRate": 15,
+                "address": "東京都板橋区南町２２－１４",
+                "notes": "7月3日現調予定",
+                "rank": "C",
+                "contractDate": "",
+                "startDate": "",
+                "endDate": "",
+                "contractStatus": "未締結",
+                "lat": 35.7368,
+                "lng": 139.7042
+            },
+            {
+                "id": "p_1782292151740",
+                "propertyId": "",
+                "clientName": "株式会社すかいらーくホールディングス",
+                "projectName": "しゃぶ葉板橋南町新装工事",
+                "sector": "飲食",
+                "workType": "新装工事",
+                "amount": 60000000,
+                "profitRate": 15,
+                "address": "東京都板橋区南町２２－１４",
+                "notes": "7月3日現調予定",
+                "rank": "C",
+                "contractDate": "",
+                "startDate": "",
+                "endDate": "",
+                "contractStatus": "未締結",
+                "lat": 35.7368,
+                "lng": 139.7042
+            },
+            {
+                "id": "p_1782121000008",
+                "propertyId": "",
+                "clientName": "株式会社すかいらーくホールディングス",
+                "projectName": "ガスト新潟駅前",
+                "sector": "飲食",
+                "workType": "新装工事",
+                "amount": 63500000,
+                "profitRate": 17,
+                "address": "新潟県新潟市",
+                "notes": "概査より1000万増加",
+                "rank": "A",
+                "contractDate": "2026-05-20",
+                "startDate": "2026-06-10",
+                "endDate": "2026-08-31",
+                "contractStatus": "設計施工契約",
+                "lat": 37.9161,
+                "lng": 139.0614
+            },
+            {
+                "id": "p_1782120516738",
+                "propertyId": "",
+                "clientName": "株式会社すかいらーくホールディングス",
+                "projectName": "バーミヤンイオンモール伊達新装工事",
+                "sector": "飲食",
+                "workType": "新装工事",
+                "amount": 63500000,
+                "profitRate": 17,
+                "address": "福島県伊達市堂ノ内９６０",
+                "notes": "",
+                "rank": "A",
+                "contractDate": "2026-06-01",
+                "startDate": "2026-07-14",
+                "endDate": "2026-09-30",
+                "contractStatus": "設計契約",
+                "lat": 37.8182,
+                "lng": 140.5631
+            },
+            {
+                "id": "p_1782110928683",
+                "propertyId": "",
+                "clientName": "株式会社ジャクエツ",
+                "projectName": "中台幼稚園改修工事",
+                "sector": "幼保",
+                "workType": "新装工事",
+                "amount": 40000000,
+                "profitRate": 20,
+                "address": "千葉県船橋市前原東4-16",
+                "notes": "",
+                "rank": "C",
+                "contractDate": "",
+                "startDate": "2026-11-02",
+                "endDate": "2027-02-26",
+                "contractStatus": "未締結",
+                "lat": 35.7022,
+                "lng": 140.0211
+            },
+            {
+                "id": "p_1782101080744",
+                "propertyId": "",
+                "clientName": "株式会社すかいらーくホールディングス",
+                "projectName": "夢庵イオンモール松本",
+                "sector": "飲食",
+                "workType": "新装工事",
+                "amount": 65400000,
+                "profitRate": 7.8,
+                "address": "長野県松本市",
+                "notes": "",
+                "rank": "A",
+                "contractDate": "2026-04-15",
+                "startDate": "2026-05-11",
+                "endDate": "2026-07-21",
+                "contractStatus": "設計施工契約",
+                "lat": 36.2380,
+                "lng": 137.9720
             }
         ];
 
@@ -1578,6 +1787,20 @@
                 application: row.querySelector('.t-app').value
             })).filter(t => t.name.trim() !== '');
 
+            const addressVal = document.getElementById('pf-address').value;
+            const existingProp = properties.find(p => p.id === id);
+            
+            // 市町村レベル座標補正
+            let latVal = existingProp ? existingProp.lat : null;
+            let lngVal = existingProp ? existingProp.lng : null;
+            if (!latVal || !lngVal || (existingProp && existingProp.address !== addressVal)) {
+                const approx = getCoordinatesForAddress(addressVal);
+                if (approx) {
+                    latVal = approx[0];
+                    lngVal = approx[1];
+                }
+            }
+
             const propData = {
                 id: id || ('prop-' + Date.now()),
                 name: document.getElementById('pf-name').value,
@@ -1586,13 +1809,15 @@
                 type: document.getElementById('pf-type').value,
                 consent: document.getElementById('pf-consent').value,
                 zone: document.getElementById('pf-zone').value,
-                address: document.getElementById('pf-address').value,
+                address: addressVal,
                 chiban: document.getElementById('pf-chiban').value,
                 area: parseFloat(document.getElementById('pf-area').value) || null,
                 buildingArea: parseFloat(document.getElementById('pf-buildingArea').value) || null,
                 landowners: document.getElementById('pf-landowners').value.split(',').map(s => s.trim()).filter(Boolean),
                 visits: visits,
                 tenants: tenants,
+                lat: latVal,
+                lng: lngVal,
                 createdAt: id ? (properties.find(p => p.id === id)?.createdAt || new Date().toISOString()) : new Date().toISOString()
             };
 
@@ -1603,228 +1828,43 @@
                 properties.unshift(propData);
             }
 
+            // GSIジオコーディング
+            if (addressVal) {
+                fetchGeocodeGSI(addressVal).then(geo => {
+                    if (geo) {
+                        const target = properties.find(p => p.id === propData.id);
+                        if (target) {
+                            target.lat = geo.lat;
+                            target.lng = geo.lng;
+                            saveData();
+                        }
+                    }
+                });
+            }
+
             saveData();
             closePropertyModal();
             renderProperties();
             if (currentTab === 'dashboard') renderDashboard();
         }
 
-        function deletePropertyFromForm() {
-            const id = document.getElementById('pf-id').value;
-            if (!id) return;
-            if (confirm('この物件データを削除してもよろしいですか？（紐づく工事案件は解除されます）')) {
-                properties = properties.filter(p => p.id !== id);
-                projects.forEach(pj => {
-                    if (pj.propertyId === id) pj.propertyId = '';
-                });
-                saveData();
-                closePropertyModal();
-                renderProperties();
-            }
-        }
-
-        // ==========================================
-        // 7. 案件進捗 描画 & 編集
-        // ==========================================
-        function setProjectViewMode(mode) {
-            projectViewMode = mode;
-            document.getElementById('btn-proj-view-table').className = mode === 'table' ? 'px-3 py-1.5 rounded-lg font-medium transition bg-white shadow-sm text-slate-800' : 'px-3 py-1.5 rounded-lg font-medium transition text-slate-500 hover:text-slate-800';
-            document.getElementById('btn-proj-view-kanban').className = mode === 'kanban' ? 'px-3 py-1.5 rounded-lg font-medium transition bg-white shadow-sm text-slate-800' : 'px-3 py-1.5 rounded-lg font-medium transition text-slate-500 hover:text-slate-800';
-
-            document.getElementById('proj-container-table').classList.toggle('hidden', mode !== 'table');
-            document.getElementById('proj-container-kanban').classList.toggle('hidden', mode !== 'kanban');
-
-            renderProjects();
-        }
-
-        function renderProjects() {
-            const search = document.getElementById('proj-search').value.toLowerCase();
-            const rankFilter = document.getElementById('proj-rank-filter').value;
-
-            // フィルター & A ➔ B ➔ C ➔ 没順にソート
-            const filtered = projects.filter(p => {
-                const matchSearch = p.projectName.toLowerCase().includes(search) || 
-                                    (p.clientName && p.clientName.toLowerCase().includes(search)) ||
-                                    (p.address && p.address.toLowerCase().includes(search));
-                const matchRank = rankFilter === 'all' || p.rank === rankFilter;
-                return matchSearch && matchRank;
-            }).sort(sortByRank);
-
-            if (projectViewMode === 'table') {
-                const tbody = document.getElementById('proj-table-body');
-                tbody.innerHTML = filtered.map(p => {
-                    const linkedProp = properties.find(pr => pr.id === p.propertyId);
-                    const rankClass = p.rank === 'A' ? 'bg-rose-100 text-rose-700' : p.rank === 'B' ? 'bg-amber-100 text-amber-700' : p.rank === '没' ? 'bg-slate-200 text-slate-600' : 'bg-blue-100 text-blue-700';
-
-                    return `
-                        <tr class="hover:bg-slate-50/80 transition cursor-pointer" onclick="openProjectModal('${p.id}')">
-                            <td class="p-3 sm:p-4">
-                                <div class="font-bold text-slate-800">${escapeHtml(p.projectName)}</div>
-                                <div class="text-xs text-slate-500">${escapeHtml(p.clientName || '発注者未設定')}</div>
-                                ${p.rank === '没' && p.reason ? `<div class="text-xs text-rose-600 mt-1">没理由: ${escapeHtml(p.reason)}</div>` : ''}
-                            </td>
-                            <td class="p-3 sm:p-4 text-center">
-                                <span class="px-2.5 py-1 rounded-full text-xs font-bold ${rankClass}">${p.rank}</span>
-                            </td>
-                            <td class="p-3 sm:p-4 text-xs font-medium text-indigo-600">
-                                ${linkedProp ? `<i class="fa-solid fa-link"></i> ${escapeHtml(linkedProp.name)}` : '<span class="text-slate-400">未紐付け</span>'}
-                            </td>
-                            <td class="p-3 sm:p-4 text-right font-extrabold text-slate-800">
-                                ¥${(Number(p.amount) || 0).toLocaleString()}
-                            </td>
-                            <td class="p-3 sm:p-4 text-center font-semibold text-emerald-600">
-                                ${p.profitRate || 0}%
-                            </td>
-                            <td class="p-3 sm:p-4">
-                                <div class="font-semibold text-slate-700">${escapeHtml(p.contractStatus || '未締結')}</div>
-                                <div class="text-xs text-blue-600 mt-0.5">${p.contractDate ? `<i class="fa-solid fa-file-signature mr-1"></i>${p.contractDate}` : '<span class="text-slate-400">契約日未設定</span>'}</div>
-                            </td>
-                            <td class="p-3 sm:p-4 text-right" onclick="event.stopPropagation()">
-                                <button onclick="openProjectModal('${p.id}')" class="px-3 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-600 rounded-lg text-xs font-semibold transition">
-                                    編集
-                                </button>
-                            </td>
-                        </tr>
-                    `;
-                }).join('');
-            } else {
-                const kanbanContainer = document.getElementById('proj-container-kanban');
-                const ranks = ['A', 'B', 'C', '没'];
-
-                kanbanContainer.innerHTML = ranks.map(r => {
-                    const rankProjs = filtered.filter(p => p.rank === r);
-                    const headerColor = r === 'A' ? 'border-rose-500 bg-rose-50 text-rose-800' : r === 'B' ? 'border-amber-500 bg-amber-50 text-amber-800' : r === '没' ? 'border-slate-400 bg-slate-100 text-slate-700' : 'border-blue-500 bg-blue-50 text-blue-800';
-
-                    return `
-                        <div class="bg-slate-100/70 rounded-2xl p-3 border border-slate-200 flex flex-col kanban-col">
-                            <div class="p-2.5 rounded-xl border-l-4 font-bold text-sm mb-3 flex items-center justify-between ${headerColor}">
-                                <span>ランク ${r}</span>
-                                <span class="px-2 py-0.5 rounded-full bg-white text-xs font-extrabold shadow-sm">${rankProjs.length}</span>
-                            </div>
-
-                            <div class="space-y-2.5 flex-1 overflow-y-auto max-h-[600px] pr-0.5">
-                                ${rankProjs.map(p => {
-                                    const linkedProp = properties.find(pr => pr.id === p.propertyId);
-                                    return `
-                                        <div onclick="openProjectModal('${p.id}')" class="bg-white p-3.5 rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition cursor-pointer space-y-2">
-                                            <div class="font-bold text-slate-800 text-xs sm:text-sm">${escapeHtml(p.projectName)}</div>
-                                            <div class="text-xs text-slate-500">${escapeHtml(p.clientName || '発注者未設定')}</div>
-                                            ${linkedProp ? `<div class="text-xs text-indigo-600 font-semibold truncate"><i class="fa-solid fa-link"></i> ${escapeHtml(linkedProp.name)}</div>` : ''}
-                                            <div class="text-xs font-extrabold text-slate-800">¥${(Number(p.amount)||0).toLocaleString()} (${p.profitRate || 0}%)</div>
-                                            ${p.contractDate ? `<div class="text-xs text-blue-600"><i class="fa-solid fa-file-signature"></i> 契約: ${p.contractDate}</div>` : ''}
-                                            ${r === '没' && p.reason ? `<div class="p-2 bg-rose-50 text-rose-700 rounded-lg text-xs">理由: ${escapeHtml(p.reason)}</div>` : ''}
-                                        </div>
-                                    `;
-                                }).join('')}
-                            </div>
-                        </div>
-                    `;
-                }).join('');
-            }
-        }
-
-        function openProjectModalForProp(propId) {
-            openProjectModal();
-            const propSelect = document.getElementById('pjf-propertyId');
-            propSelect.value = propId;
-            onProjectPropertyChange();
-        }
-
-        function onProjectPropertyChange() {
-            const propId = document.getElementById('pjf-propertyId').value;
-            if (propId) {
-                const prop = properties.find(p => p.id === propId);
-                if (prop && prop.address) {
-                    document.getElementById('pjf-address').value = prop.address;
-                }
-            }
-        }
-
-        function setSelectValueWithFallback(selectId, value, defaultVal) {
-            const select = document.getElementById(selectId);
-            if (!value) {
-                select.value = defaultVal;
-                return;
-            }
-            let found = false;
-            for (let i = 0; i < select.options.length; i++) {
-                if (select.options[i].value === value) {
-                    select.value = value;
-                    found = true;
-                    break;
-                }
-            }
-            if (!found) {
-                for (let i = 0; i < select.options.length; i++) {
-                    if (value.includes(select.options[i].value) || select.options[i].value.includes(value)) {
-                        select.value = select.options[i].value;
-                        found = true;
-                        break;
-                    }
-                }
-            }
-            if (!found) {
-                const opt = document.createElement('option');
-                opt.value = value;
-                opt.textContent = value;
-                select.appendChild(opt);
-                select.value = value;
-            }
-        }
-
-        function openProjectModal(id = null) {
-            const modal = document.getElementById('project-modal');
-            const form = document.getElementById('project-form');
-            form.reset();
-
-            // 物件ドロップダウン生成
-            const propSelect = document.getElementById('pjf-propertyId');
-            propSelect.innerHTML = '<option value="">-- 物件に紐付けない --</option>' + 
-                properties.map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join('');
-
-            document.getElementById('btn-proj-delete').classList.toggle('hidden', !id);
-
-            if (id) {
-                const p = projects.find(item => item.id === id);
-                if (!p) return;
-
-                document.getElementById('proj-modal-title').textContent = '工事案件の編集';
-                document.getElementById('pjf-id').value = p.id;
-                document.getElementById('pjf-projectName').value = p.projectName || '';
-                document.getElementById('pjf-propertyId').value = p.propertyId || '';
-                document.getElementById('pjf-rank').value = p.rank || 'A';
-                document.getElementById('pjf-reason').value = p.reason || '';
-                document.getElementById('pjf-clientName').value = p.clientName || '';
-                setSelectValueWithFallback('pjf-sector', p.sector, '飲食');
-                document.getElementById('pjf-amount').value = p.amount || '';
-                document.getElementById('pjf-profitRate').value = p.profitRate || '';
-                setSelectValueWithFallback('pjf-contractStatus', p.contractStatus, '未締結');
-                document.getElementById('pjf-contractDate').value = p.contractDate || '';
-                document.getElementById('pjf-startDate').value = p.startDate || '';
-                document.getElementById('pjf-endDate').value = p.endDate || '';
-                document.getElementById('pjf-address').value = p.address || '';
-                document.getElementById('pjf-notes').value = p.notes || '';
-            } else {
-                document.getElementById('proj-modal-title').textContent = '新規工事案件の追加';
-                document.getElementById('pjf-id').value = '';
-                document.getElementById('pjf-sector').value = '飲食';
-                document.getElementById('pjf-contractStatus').value = '未締結';
-                document.getElementById('pjf-contractDate').value = '';
-                document.getElementById('pjf-startDate').value = '';
-                document.getElementById('pjf-endDate').value = '';
-            }
-
-            toggleReasonField('pjf');
-            modal.classList.remove('hidden');
-        }
-
-        function closeProjectModal() {
-            document.getElementById('project-modal').classList.add('hidden');
-        }
-
         function saveProject(e) {
             e.preventDefault();
             const id = document.getElementById('pjf-id').value;
+
+            const addressVal = document.getElementById('pjf-address').value;
+            const existingProj = projects.find(p => p.id === id);
+
+            // 市町村レベル座標補正
+            let latVal = existingProj ? existingProj.lat : null;
+            let lngVal = existingProj ? existingProj.lng : null;
+            if (!latVal || !lngVal || (existingProj && existingProj.address !== addressVal)) {
+                const approx = getCoordinatesForAddress(addressVal);
+                if (approx) {
+                    latVal = approx[0];
+                    lngVal = approx[1];
+                }
+            }
 
             const projData = {
                 id: id || ('p_' + Date.now()),
@@ -1840,8 +1880,10 @@
                 contractDate: document.getElementById('pjf-contractDate').value,
                 startDate: document.getElementById('pjf-startDate').value,
                 endDate: document.getElementById('pjf-endDate').value,
-                address: document.getElementById('pjf-address').value,
-                notes: document.getElementById('pjf-notes').value
+                address: addressVal,
+                notes: document.getElementById('pjf-notes').value,
+                lat: latVal,
+                lng: lngVal
             };
 
             if (id) {
@@ -1851,32 +1893,35 @@
                 projects.unshift(projData);
             }
 
+            // GSIジオコーディング
+            if (addressVal) {
+                fetchGeocodeGSI(addressVal).then(geo => {
+                    if (geo) {
+                        const target = projects.find(p => p.id === projData.id);
+                        if (target) {
+                            target.lat = geo.lat;
+                            target.lng = geo.lng;
+                            saveData();
+                        }
+                    }
+                });
+            }
+
             saveData();
             closeProjectModal();
             renderProjects();
             if (currentTab === 'dashboard') renderDashboard();
         }
 
-        function deleteProjectFromForm() {
-            const id = document.getElementById('pjf-id').value;
-            if (!id) return;
-            if (confirm('この工事案件データを削除してもよろしいですか？')) {
-                projects = projects.filter(p => p.id !== id);
-                saveData();
-                closeProjectModal();
-                renderProjects();
-            }
-        }
-
         // ==========================================
-        // 8. Leafletマップ描画 & ピンポイン補正
+        // 8. Leafletマップ描画 & ピンポイント補正
         // ==========================================
         function renderMap() {
             const mapContainer = document.getElementById('map-container');
             if (!mapContainer) return;
 
             if (!leafletMap) {
-                leafletMap = L.map('map-container').setView([35.75, 139.40], 10);
+                leafletMap = L.map('map-container').setView([35.75, 139.40], 8);
                 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                     attribution: '&copy; OpenStreetMap contributors'
                 }).addTo(leafletMap);
@@ -1910,9 +1955,19 @@
             properties.forEach(p => {
                 let lat = p.lat;
                 let lng = p.lng;
+
+                // 住所から市町村レベル座標を特定
                 if (!lat || !lng) {
-                    lat = 35.70 + (Math.random() * 0.1 - 0.05);
-                    lng = 139.40 + (Math.random() * 0.1 - 0.05);
+                    const approx = getCoordinatesForAddress(p.address);
+                    if (approx) {
+                        lat = approx[0];
+                        lng = approx[1];
+                        p.lat = lat;
+                        p.lng = lng;
+                    } else {
+                        lat = 35.6895;
+                        lng = 139.6917;
+                    }
                 }
 
                 const marker = L.marker([lat, lng], { icon: flagIcon, draggable: true }).addTo(leafletMap);
@@ -1922,7 +1977,7 @@
                     <div class="space-y-2 text-xs">
                         <div class="font-bold text-slate-800 text-sm">🚩 ${escapeHtml(p.name)}</div>
                         <div>種別: ${escapeHtml(p.type || '-')} / ランク: ${p.rank}</div>
-                        <div class="text-slate-500">${escapeHtml(p.address || '')}</div>
+                        <div class="text-slate-500">${escapeHtml(p.address || '住所未登録')}</div>
                         <div class="text-rose-600 font-semibold text-[10px]">※ドラッグでピンの位置を正確に移動保存できます</div>
                         <button onclick="openPropertyModal('${p.id}')" class="w-full mt-1 py-1 bg-indigo-600 text-white rounded font-semibold">詳細・編集</button>
                     </div>
@@ -1936,15 +1991,37 @@
                 });
 
                 mapMarkers.push(marker);
+
+                // GSIジオコーディング自動補正（バックグラウンド）
+                if (p.address) {
+                    fetchGeocodeGSI(p.address).then(geo => {
+                        if (geo) {
+                            p.lat = geo.lat;
+                            p.lng = geo.lng;
+                            marker.setLatLng([geo.lat, geo.lng]);
+                            saveData();
+                        }
+                    });
+                }
             });
 
             // 案件マーカー設置
             projects.forEach(pj => {
                 let lat = pj.lat;
                 let lng = pj.lng;
+
+                // 住所から市町村レベル座標を特定
                 if (!lat || !lng) {
-                    lat = 35.75 + (Math.random() * 0.1 - 0.05);
-                    lng = 139.45 + (Math.random() * 0.1 - 0.05);
+                    const approx = getCoordinatesForAddress(pj.address);
+                    if (approx) {
+                        lat = approx[0];
+                        lng = approx[1];
+                        pj.lat = lat;
+                        pj.lng = lng;
+                    } else {
+                        lat = 35.75;
+                        lng = 139.45;
+                    }
                 }
 
                 const marker = L.marker([lat, lng], { icon: starIcon, draggable: true }).addTo(leafletMap);
@@ -1954,6 +2031,7 @@
                     <div class="space-y-2 text-xs">
                         <div class="font-bold text-slate-800 text-sm">⭐ ${escapeHtml(pj.projectName)}</div>
                         <div>発注者: ${escapeHtml(pj.clientName || '-')}</div>
+                        <div class="text-slate-500">${escapeHtml(pj.address || '住所未登録')}</div>
                         <div class="font-extrabold text-slate-800">¥${(Number(pj.amount)||0).toLocaleString()}</div>
                         <button onclick="openProjectModal('${pj.id}')" class="w-full mt-1 py-1 bg-emerald-600 text-white rounded font-semibold">詳細・編集</button>
                     </div>
@@ -1967,6 +2045,18 @@
                 });
 
                 mapMarkers.push(marker);
+
+                // GSIジオコーディング自動補正（バックグラウンド）
+                if (pj.address) {
+                    fetchGeocodeGSI(pj.address).then(geo => {
+                        if (geo) {
+                            pj.lat = geo.lat;
+                            pj.lng = geo.lng;
+                            marker.setLatLng([geo.lat, geo.lng]);
+                            saveData();
+                        }
+                    });
+                }
             });
 
             if (bounds.length > 0) {
@@ -1974,84 +2064,7 @@
             }
         }
 
-        // ==========================================
-        // 9. バックアップ / エクスポート / インポート
-        // ==========================================
-        function openBackupModal() {
-            document.getElementById('backup-modal').classList.remove('hidden');
-        }
-
-        function closeBackupModal() {
-            document.getElementById('backup-modal').classList.add('hidden');
-        }
-
-        async function exportFullData() {
-            const defaultName = `物件・案件統合データ_${new Date().toISOString().slice(0,10)}.json`;
-            const jsonStr = JSON.stringify({ properties, projects }, null, 2);
-
-            // モダンブラウザの File System Access API (showSaveFilePicker) を優先試行
-            if (typeof window.showSaveFilePicker === 'function') {
-                try {
-                    const handle = await window.showSaveFilePicker({
-                        suggestedName: defaultName,
-                        types: [{
-                            description: 'JSON Data File',
-                            accept: { 'application/json': ['.json'] },
-                        }],
-                    });
-                    const writable = await handle.createWritable();
-                    await writable.write(jsonStr);
-                    await writable.close();
-                    
-                    showNotification('データを指定した場所に正常に保存しました！');
-                    closeBackupModal();
-                    return;
-                } catch (err) {
-                    // ユーザーキャンセル時は処理中断
-                    if (err.name === 'AbortError') return;
-                    console.warn('showSaveFilePicker が制限されたため標準ダウンロードに切り替えます:', err);
-                }
-            }
-
-            // フォールバック：標準 Blob ダウンロード
-            try {
-                const blob = new Blob([jsonStr], { type: "application/json;charset=utf-8;" });
-                const url = URL.createObjectURL(blob);
-                const downloadAnchor = document.createElement('a');
-                downloadAnchor.href = url;
-                downloadAnchor.download = defaultName;
-                document.body.appendChild(downloadAnchor);
-                downloadAnchor.click();
-                
-                setTimeout(() => {
-                    document.body.removeChild(downloadAnchor);
-                    URL.revokeObjectURL(url);
-                }, 100);
-
-                showNotification('バックアップファイルをダウンロードしました。\n（※保存先ダイアログが出ない場合はブラウザの「ダウンロード設定」をご確認ください）');
-                closeBackupModal();
-            } catch (e) {
-                alert('ファイルの保存中にエラーが発生しました。');
-            }
-        }
-
-        // 通知メッセージ表示ヘパー
-        function showNotification(msg) {
-            const toast = document.createElement('div');
-            toast.className = 'fixed bottom-5 right-5 bg-slate-900 text-white px-5 py-3 rounded-2xl shadow-2xl z-50 text-xs sm:text-sm font-semibold flex items-center space-x-2 transition-all duration-300 transform translate-y-10 opacity-0';
-            toast.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-400 text-base"></i><span>${escapeHtml(msg).replace(/\n/g, '<br>')}</span>`;
-            document.body.appendChild(toast);
-
-            setTimeout(() => {
-                toast.classList.remove('translate-y-10', 'opacity-0');
-            }, 10);
-
-            setTimeout(() => {
-                toast.classList.add('translate-y-10', 'opacity-0');
-                setTimeout(() => toast.remove(), 300);
-            }, 4000);
-        }
-
+        // インポート時の市町村レベル自動座標補正
         function handleFileImport(e) {
             const file = e.target.files[0];
             if (!file) return;
@@ -2062,13 +2075,41 @@
                     const imported = JSON.parse(evt.target.result);
 
                     if (imported.properties || imported.projects) {
-                        if (imported.properties) properties = imported.properties;
-                        if (imported.projects) projects = imported.projects;
+                        if (imported.properties) {
+                            properties = imported.properties;
+                            properties.forEach(p => {
+                                if (!p.lat || !p.lng) {
+                                    const approx = getCoordinatesForAddress(p.address);
+                                    if (approx) { p.lat = approx[0]; p.lng = approx[1]; }
+                                }
+                            });
+                        }
+                        if (imported.projects) {
+                            projects = imported.projects;
+                            projects.forEach(pj => {
+                                if (!pj.lat || !pj.lng) {
+                                    const approx = getCoordinatesForAddress(pj.address);
+                                    if (approx) { pj.lat = approx[0]; pj.lng = approx[1]; }
+                                }
+                            });
+                        }
                     } else if (Array.isArray(imported)) {
                         if (imported.length > 0 && imported[0].projectName) {
                             projects = imported;
+                            projects.forEach(pj => {
+                                if (!pj.lat || !pj.lng) {
+                                    const approx = getCoordinatesForAddress(pj.address);
+                                    if (approx) { pj.lat = approx[0]; pj.lng = approx[1]; }
+                                }
+                            });
                         } else if (imported.length > 0 && imported[0].name) {
                             properties = imported;
+                            properties.forEach(p => {
+                                if (!p.lat || !p.lng) {
+                                    const approx = getCoordinatesForAddress(p.address);
+                                    if (approx) { p.lat = approx[0]; p.lng = approx[1]; }
+                                }
+                            });
                         }
                     }
 
