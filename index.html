@@ -1452,33 +1452,105 @@
             const container = document.getElementById('pf-linked-projects-list');
             const linked = projects.filter(pj => pj.propertyId === propId).sort(sortByRank);
 
+            let html = '';
             if (linked.length === 0) {
-                container.innerHTML = `
-                    <div class="text-xs text-slate-400 p-3 bg-slate-50 rounded-xl flex items-center justify-between">
-                        <span>現在、紐づいている工事案件はありません</span>
-                        <button type="button" onclick="openProjectModalForProp('${propId}')" class="px-2.5 py-1 bg-emerald-600 text-white rounded text-xs font-semibold">
-                            + 新規工事案件
+                html += `<div class="text-xs text-slate-400 p-3 bg-slate-50 rounded-xl">現在、紐づいている工事案件はありません</div>`;
+            } else {
+                html += linked.map(pj => `
+                    <div class="p-2.5 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between gap-2">
+                        <div class="min-w-0 flex-1">
+                            <div class="font-bold text-slate-800 text-xs truncate">${escapeHtml(pj.projectName)} (${pj.rank})</div>
+                            <div class="text-[11px] text-slate-500 truncate">金額: ¥${(Number(pj.amount)||0).toLocaleString()} / 契約: ${escapeHtml(pj.contractStatus || '未締結')}</div>
+                        </div>
+                        <div class="flex items-center space-x-1 shrink-0">
+                            <button type="button" onclick="closePropertyModal(); openProjectModal('${pj.id}')" class="px-2 py-1 bg-white border border-slate-300 rounded text-xs font-semibold hover:bg-slate-100">
+                                編集
+                            </button>
+                            <button type="button" onclick="unlinkProjectFromProperty('${pj.id}', '${propId}')" class="px-2 py-1 bg-rose-50 text-rose-600 border border-rose-200 rounded text-xs font-semibold hover:bg-rose-100" title="紐付け解除">
+                                解除
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            html += `
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
+                    <button type="button" onclick="showAttachProjectDropdown('${propId}')" class="py-2.5 px-3 bg-indigo-50 border border-indigo-200 text-indigo-700 hover:bg-indigo-100 rounded-xl text-xs font-semibold transition flex items-center justify-center space-x-1.5">
+                        <i class="fa-solid fa-link"></i>
+                        <span>既存案件から選択して紐付け</span>
+                    </button>
+                    <button type="button" onclick="openProjectModalForProp('${propId}')" class="py-2.5 px-3 bg-emerald-50 border border-emerald-200 text-emerald-700 hover:bg-emerald-100 rounded-xl text-xs font-semibold transition flex items-center justify-center space-x-1.5">
+                        <i class="fa-solid fa-plus"></i>
+                        <span>新規工事案件を作成して紐付け</span>
+                    </button>
+                </div>
+                <div id="attach-project-select-container" class="hidden mt-2 p-3 bg-indigo-50/70 rounded-xl border border-indigo-200 space-y-2">
+                    <label class="block font-semibold text-indigo-900 text-xs">紐付ける既存工事案件を選択:</label>
+                    <div class="flex gap-2">
+                        <select id="attach-project-select" class="flex-1 p-2 text-xs bg-white border border-indigo-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
+                            <!-- JSで生成 -->
+                        </select>
+                        <button type="button" onclick="confirmAttachProject('${propId}')" class="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg text-xs shrink-0 transition">
+                            決定
                         </button>
                     </div>
-                `;
+                </div>
+            `;
+
+            container.innerHTML = html;
+        }
+
+        function unlinkProjectFromProperty(projId, propId) {
+            const pj = projects.find(p => p.id === projId);
+            if (pj && confirm(`「${pj.projectName}」の物件紐付けを解除しますか？`)) {
+                pj.propertyId = '';
+                saveData();
+                renderLinkedProjectsInModal(propId);
+                if (currentTab === 'project') renderProjects();
+                if (currentTab === 'dashboard') renderDashboard();
+            }
+        }
+
+        function showAttachProjectDropdown(propId) {
+            const container = document.getElementById('attach-project-select-container');
+            const select = document.getElementById('attach-project-select');
+            
+            // 紐付け対象になれる既存案件（現在この物件に紐づいていないもの）
+            const unlinkedOrOther = projects.filter(pj => pj.propertyId !== propId).sort(sortByRank);
+
+            if (unlinkedOrOther.length === 0) {
+                alert('紐付け可能な既存工事案件がありません。');
                 return;
             }
 
-            container.innerHTML = linked.map(pj => `
-                <div class="p-2.5 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between">
-                    <div>
-                        <div class="font-bold text-slate-800 text-xs">${escapeHtml(pj.projectName)} (${pj.rank})</div>
-                        <div class="text-xs text-slate-500">金額: ¥${(Number(pj.amount)||0).toLocaleString()} / 契約: ${escapeHtml(pj.contractStatus || '未締結')}</div>
-                    </div>
-                    <button type="button" onclick="closePropertyModal(); openProjectModal('${pj.id}')" class="px-2.5 py-1 bg-white border border-slate-300 rounded text-xs font-semibold hover:bg-slate-100">
-                        編集
-                    </button>
-                </div>
-            `).join('') + `
-                <button type="button" onclick="openProjectModalForProp('${propId}')" class="w-full mt-2 py-2 border-2 border-dashed border-emerald-300 text-emerald-600 hover:bg-emerald-50 rounded-xl text-xs font-semibold transition">
-                    + この物件に新案件を紐付けて追加
-                </button>
-            `;
+            select.innerHTML = unlinkedOrOther.map(pj => {
+                const curProp = properties.find(p => p.id === pj.propertyId);
+                const linkedInfo = curProp ? ` (現在: ${curProp.name}に紐付け中)` : ' (未紐付け)';
+                return `<option value="${pj.id}">[ランク${pj.rank}] ${escapeHtml(pj.projectName)}${escapeHtml(linkedInfo)}</option>`;
+            }).join('');
+
+            container.classList.remove('hidden');
+        }
+
+        function confirmAttachProject(propId) {
+            const select = document.getElementById('attach-project-select');
+            const projId = select.value;
+            if (!projId) return;
+
+            const pj = projects.find(p => p.id === projId);
+            if (pj) {
+                pj.propertyId = propId;
+                // もし施工場所住所が空なら物件住所を自動反映
+                const prop = properties.find(p => p.id === propId);
+                if (prop && prop.address && !pj.address) {
+                    pj.address = prop.address;
+                }
+                saveData();
+                renderLinkedProjectsInModal(propId);
+                if (currentTab === 'project') renderProjects();
+                if (currentTab === 'dashboard') renderDashboard();
+            }
         }
 
         function saveProperty(e) {
