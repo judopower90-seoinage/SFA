@@ -84,7 +84,7 @@
                     <span>データ バックアップ/復元</span>
                 </button>
                 <div class="text-center text-xs text-slate-500 py-1">
-                    v3.1 統合安定版
+                    v3.2 昇格(案件化)機能連動版
                 </div>
             </div>
         </aside>
@@ -114,7 +114,7 @@
                 <!-- KPIカード指標 -->
                 <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5">
                     <div class="bg-white p-4 sm:p-5 rounded-2xl shadow-sm border border-slate-200">
-                        <div class="text-xs sm:text-sm font-semibold text-slate-500">総物件数</div>
+                        <div class="text-xs sm:text-sm font-semibold text-slate-500">開発中物件数</div>
                         <div class="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-2" id="kpi-prop-count">0</div>
                         <div class="text-xs text-indigo-600 mt-1 font-medium" id="kpi-prop-ranka">A: 0件</div>
                     </div>
@@ -191,7 +191,7 @@
                 <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-slate-200">
                     <div>
                         <h2 class="text-xl sm:text-2xl font-bold text-slate-800">物件開発管理</h2>
-                        <p class="text-xs sm:text-sm text-slate-500">仕入れ・開発候補地の追跡・交渉状況</p>
+                        <p class="text-xs sm:text-sm text-slate-500">仕入れ・開発候補地の追跡・交渉状況および案件昇格</p>
                     </div>
                     
                     <div class="flex flex-wrap items-center gap-2">
@@ -230,7 +230,7 @@
                 <!-- テーブル表示領域 -->
                 <div id="prop-container-table" class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
                     <div class="overflow-x-auto">
-                        <table class="w-full text-left border-collapse min-w-[750px]">
+                        <table class="w-full text-left border-collapse min-w-[800px]">
                             <thead>
                                 <tr class="bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-500 uppercase tracking-wider">
                                     <th class="p-3 sm:p-4">物件名 / 所在地</th>
@@ -238,8 +238,8 @@
                                     <th class="p-3 sm:p-4 text-center">ランク</th>
                                     <th class="p-3 sm:p-4">地主名</th>
                                     <th class="p-3 sm:p-4 text-center">承諾</th>
-                                    <th class="p-3 sm:p-4">関連工事案件</th>
-                                    <th class="p-3 sm:p-4 text-right">操作</th>
+                                    <th class="p-3 sm:p-4 text-center">ステータス</th>
+                                    <th class="p-3 sm:p-4 text-right">操作 / 昇格</th>
                                 </tr>
                             </thead>
                             <tbody id="prop-table-body" class="divide-y divide-slate-100 text-xs sm:text-sm">
@@ -260,7 +260,7 @@
                 <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-slate-200">
                     <div>
                         <h2 class="text-xl sm:text-2xl font-bold text-slate-800">案件進捗管理</h2>
-                        <p class="text-xs sm:text-sm text-slate-500">施工・受注工事案件の一元管理と紐付け</p>
+                        <p class="text-xs sm:text-sm text-slate-500">施工・受注工事案件の一元管理と物件連携</p>
                     </div>
 
                     <div class="flex flex-wrap items-center gap-2">
@@ -329,7 +329,7 @@
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-slate-200">
                     <div>
                         <h2 class="text-xl sm:text-2xl font-bold text-slate-800">物件＆案件 マップ</h2>
-                        <p class="text-xs sm:text-sm text-slate-500">位置情報の視覚的把握とドラッグによる位置精度の補正</p>
+                        <p class="text-xs sm:text-sm text-slate-500">位置情報の視覚的把握（※案件化された物件は星マークの進捗案件ピンに統一表示されます）</p>
                     </div>
                     <div class="flex flex-wrap items-center gap-3 text-xs sm:text-sm">
                         <span class="inline-flex items-center space-x-1.5 px-3 py-1.5 bg-blue-50 text-blue-700 rounded-full font-semibold border border-blue-200">
@@ -367,6 +367,15 @@
 
             <form id="property-form" onsubmit="saveProperty(event)" class="p-4 sm:p-6 overflow-y-auto space-y-6 flex-1 text-xs sm:text-sm">
                 <input type="hidden" id="pf-id">
+
+                <!-- 案件化(昇格) バナー (案件化済の場合に表示) -->
+                <div id="pf-promoted-banner" class="hidden bg-gradient-to-r from-emerald-500 to-teal-600 text-white p-3 rounded-xl shadow-sm flex items-center justify-between">
+                    <div class="flex items-center space-x-2">
+                        <i class="fa-solid fa-circle-check text-lg"></i>
+                        <span class="font-bold">この物件は工事案件へ昇格（案件化）されています</span>
+                    </div>
+                    <span class="text-xs bg-white/20 px-2 py-1 rounded">マップ表示: 案件ピン(星)へ移行済</span>
+                </div>
 
                 <!-- 基本情報 -->
                 <div>
@@ -478,10 +487,18 @@
                 </div>
             </form>
 
-            <div class="p-4 border-t border-slate-200 flex items-center justify-between bg-slate-50 shrink-0">
-                <button type="button" onclick="deletePropertyFromForm()" id="btn-prop-delete" class="px-4 py-2 bg-rose-50 text-rose-600 hover:bg-rose-100 rounded-xl text-xs sm:text-sm font-semibold transition hidden">
-                    <i class="fa-solid fa-trash mr-1"></i>削除
-                </button>
+            <div class="p-4 border-t border-slate-200 flex flex-wrap items-center justify-between gap-3 bg-slate-50 shrink-0">
+                <div class="flex items-center space-x-2">
+                    <button type="button" onclick="deletePropertyFromForm()" id="btn-prop-delete" class="px-3 py-2 bg-rose-50 text-rose-600 hover:bg-rose-100 rounded-xl text-xs sm:text-sm font-semibold transition hidden">
+                        <i class="fa-solid fa-trash mr-1"></i>削除
+                    </button>
+                    <!-- 昇格(案件化)ボタン -->
+                    <button type="button" onclick="promoteCurrentPropertyToProject()" id="btn-prop-promote" class="px-4 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-xl text-xs sm:text-sm font-bold shadow-md transition flex items-center space-x-1.5 hidden">
+                        <i class="fa-solid fa-rocket"></i>
+                        <span>案件進捗へ昇格（案件化）</span>
+                    </button>
+                </div>
+                
                 <div class="flex items-center space-x-3 ml-auto">
                     <button type="button" onclick="closePropertyModal()" class="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl text-xs sm:text-sm font-semibold transition">
                         キャンセル
@@ -745,7 +762,7 @@
                 "landowners": ["森谷末子"],
                 "mortgage": false,
                 "consent": "済",
-                "terms": "",
+                "isPromoted": false,
                 "visits": [
                     { "date": "2026-06-23", "detail": "森谷末子様、娘と立ち話したところ、弟が詳細分かっているとの事。" },
                     { "date": "2026-06-30", "detail": "面談が出来ないため、資さんうどんと、バーガーキングの複合案で提案書を置いてくる" },
@@ -774,7 +791,7 @@
                 "landowners": ["山崎康史"],
                 "mortgage": false,
                 "consent": "済",
-                "terms": "",
+                "isPromoted": false,
                 "visits": [
                     { "date": "2026-06-24", "detail": "物件基本情報を確認、推進プロセスを開始。" }
                 ],
@@ -799,7 +816,7 @@
                 "landowners": ["加藤雅江"],
                 "mortgage": false,
                 "consent": "済",
-                "terms": "",
+                "isPromoted": false,
                 "visits": [
                     { "date": "2026-06-24", "detail": "物件基本情報を確認、推進プロセスを開始。" }
                 ],
@@ -821,7 +838,7 @@
                 "landowners": ["株式会社フェドラ"],
                 "mortgage": false,
                 "consent": "済",
-                "terms": "",
+                "isPromoted": true,
                 "visits": [
                     { "date": "2026-06-24", "detail": "すかいらーくより検討したい旨の連絡あり、7月1日にGLI樋口社長がフェドラと面談予定。" },
                     { "date": "2026-07-01", "detail": "GLI樋口社長がフェドラ社長と面談、バーガーキングと資さんうどんの複合提案で決定。" }
@@ -849,7 +866,7 @@
                 "landowners": ["三菱HCキャピタル"],
                 "mortgage": false,
                 "consent": "済",
-                "terms": "",
+                "isPromoted": false,
                 "visits": [
                     { "date": "2026-06-30", "detail": "出店決定" }
                 ],
@@ -874,7 +891,7 @@
                 "landowners": ["保坂様"],
                 "mortgage": false,
                 "consent": "済",
-                "terms": "７５万過去に申込有",
+                "isPromoted": false,
                 "visits": [
                     { "date": "2026-07-08", "detail": "保坂様面談、モスバーガーをテナント候補として選定。" }
                 ],
@@ -899,7 +916,7 @@
                 "landowners": ["田中様"],
                 "mortgage": false,
                 "consent": "未",
-                "terms": "",
+                "isPromoted": false,
                 "visits": [
                     { "date": "2026-07-17", "detail": "駐車場を管理している佐藤商会に確認。" }
                 ],
@@ -1113,7 +1130,7 @@
                 "workType": "新装工事",
                 "amount": 63500000,
                 "profitRate": 17,
-                "address": "福島県伊達市堂ノ内９６０",
+                "address": "福島県伊達市堂ノ内９６0",
                 "notes": "",
                 "rank": "A",
                 "contractDate": "2026-06-01",
@@ -1270,7 +1287,7 @@
         // 5. ダッシュボード & ガントチャート レンダリング
         // ==========================================
         function renderDashboard() {
-            const activeProps = properties.filter(p => p.rank !== '没');
+            const activeProps = properties.filter(p => p.rank !== '没' && !p.isPromoted);
             const activeProjs = projects.filter(p => p.rank !== '没');
 
             document.getElementById('kpi-prop-count').textContent = activeProps.length;
@@ -1300,6 +1317,7 @@
                             <div class="font-bold text-slate-800 text-xs sm:text-sm flex items-center gap-2">
                                 <span class="px-2 py-0.5 rounded text-xs font-extrabold ${rankColor}">${p.rank}</span>
                                 <span>${escapeHtml(p.name)}</span>
+                                ${p.isPromoted ? `<span class="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-[10px] rounded-md font-bold"><i class="fa-solid fa-rocket mr-1"></i>案件化済</span>` : ''}
                             </div>
                             <div class="text-xs text-slate-500">${escapeHtml(p.address || '住所未登録')}</div>
                         </div>
@@ -1379,7 +1397,7 @@
                 const widthPct = Math.max(2, endPosPct - startPosPct);
 
                 return `
-                    <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 hover:bg-slate-100 transition space-y-2" onclick="openProjectModal('${p.id}')">
+                    <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 hover:bg-slate-100 transition space-y-2 cursor-pointer" onclick="openProjectModal('${p.id}')">
                         <div class="flex flex-col sm:flex-row sm:items-center justify-between text-xs gap-1">
                             <div class="flex items-center space-x-2 font-bold text-slate-800 truncate">
                                 <span class="px-2 py-0.5 rounded text-[11px] font-extrabold ${rankColor}">${p.rank}</span>
@@ -1439,7 +1457,7 @@
         }
 
         // ==========================================
-        // 6. 物件開発 描画 & 直接編集
+        // 6. 物件開発 描画 & 編集 & 昇格(案件化)
         // ==========================================
         function setPropertyViewMode(mode) {
             propertyViewMode = mode;
@@ -1476,7 +1494,9 @@
                     return `
                         <tr class="hover:bg-slate-50/80 transition cursor-pointer" onclick="openPropertyModal('${p.id}')">
                             <td class="p-3 sm:p-4">
-                                <div class="font-bold text-slate-800">${escapeHtml(p.name)}</div>
+                                <div class="font-bold text-slate-800 flex items-center space-x-2">
+                                    <span>${escapeHtml(p.name)}</span>
+                                </div>
                                 <div class="text-xs text-slate-500 mt-0.5">${escapeHtml(p.address || '-')}</div>
                                 ${p.rank === '没' && p.reason ? `<div class="text-xs text-rose-600 mt-1">没理由: ${escapeHtml(p.reason)}</div>` : ''}
                             </td>
@@ -1488,10 +1508,18 @@
                             <td class="p-3 sm:p-4 text-center">
                                 <span class="px-2 py-0.5 rounded text-xs ${consentClass}">${escapeHtml(consentDisplay)}</span>
                             </td>
-                            <td class="p-3 sm:p-4">
-                                <span class="text-xs font-semibold text-indigo-600">${linkedProjects.length}件の工事案件</span>
+                            <td class="p-3 sm:p-4 text-center">
+                                ${p.isPromoted 
+                                    ? `<span class="px-2.5 py-1 bg-emerald-100 text-emerald-800 text-xs font-bold rounded-lg border border-emerald-200 inline-flex items-center space-x-1"><i class="fa-solid fa-rocket"></i><span>案件化済</span></span>` 
+                                    : `<span class="px-2.5 py-1 bg-slate-100 text-slate-600 text-xs rounded-lg">開発中</span>`}
                             </td>
-                            <td class="p-3 sm:p-4 text-right" onclick="event.stopPropagation()">
+                            <td class="p-3 sm:p-4 text-right space-x-1" onclick="event.stopPropagation()">
+                                ${!p.isPromoted ? `
+                                    <button onclick="promotePropertyToProject('${p.id}')" class="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold shadow-sm transition inline-flex items-center space-x-1">
+                                        <i class="fa-solid fa-rocket"></i>
+                                        <span>昇格</span>
+                                    </button>
+                                ` : ''}
                                 <button onclick="openPropertyModal('${p.id}')" class="px-3 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 rounded-lg text-xs font-semibold transition">
                                     編集
                                 </button>
@@ -1517,7 +1545,10 @@
                             <div class="space-y-2.5 flex-1 overflow-y-auto max-h-[600px] pr-0.5">
                                 ${rankProps.map(p => `
                                     <div onclick="openPropertyModal('${p.id}')" class="bg-white p-3.5 rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition cursor-pointer space-y-2">
-                                        <div class="font-bold text-slate-800 text-xs sm:text-sm">${escapeHtml(p.name)}</div>
+                                        <div class="flex items-start justify-between gap-1">
+                                            <div class="font-bold text-slate-800 text-xs sm:text-sm">${escapeHtml(p.name)}</div>
+                                            ${p.isPromoted ? `<span class="px-1.5 py-0.5 bg-emerald-100 text-emerald-700 text-[10px] font-bold rounded shrink-0">案件化済</span>` : ''}
+                                        </div>
                                         <div class="text-xs text-slate-500 line-clamp-2">${escapeHtml(p.address || '住所未設定')}</div>
                                         ${r === '没' && p.reason ? `<div class="p-2 bg-rose-50 text-rose-700 rounded-lg text-xs">理由: ${escapeHtml(p.reason)}</div>` : ''}
                                         <div class="flex items-center justify-between pt-2 border-t text-xs text-slate-400">
@@ -1533,6 +1564,36 @@
             }
         }
 
+        // ==========================================
+        // 昇格 (物件 ➔ 案件化) ロジック
+        // ==========================================
+        function promotePropertyToProject(propId) {
+            const prop = properties.find(p => p.id === propId);
+            if (!prop) return;
+
+            if (confirm(`「${prop.name}」を案件進捗管理へ「昇格（案件化）」しますか？\n\n・物件住所や座標情報を取り継いで新規工事案件を作成します。\n・この物件はマップ表示の旗ピン(青)から除外され、作成される案件ピン(星)へ引き継がれます。`)) {
+                prop.isPromoted = true;
+                saveData();
+
+                // 新規案件モーダルを開き、物件情報をセット
+                openProjectModal();
+                
+                document.getElementById('pjf-projectName').value = prop.name;
+                document.getElementById('pjf-propertyId').value = prop.id;
+                document.getElementById('pjf-address').value = prop.address || '';
+                document.getElementById('pjf-rank').value = prop.rank || 'A';
+                
+                showToast(`「${prop.name}」を案件へ昇格しました！案件情報を設定してください。`);
+            }
+        }
+
+        function promoteCurrentPropertyToProject() {
+            const id = document.getElementById('pf-id').value;
+            if (!id) return;
+            closePropertyModal();
+            promotePropertyToProject(id);
+        }
+
         function openPropertyModal(id = null) {
             const modal = document.getElementById('property-modal');
             const form = document.getElementById('property-form');
@@ -1543,7 +1604,12 @@
             visitsContainer.innerHTML = '';
             tenantsContainer.innerHTML = '';
 
-            document.getElementById('btn-prop-delete').classList.toggle('hidden', !id);
+            const deleteBtn = document.getElementById('btn-prop-delete');
+            const promoteBtn = document.getElementById('btn-prop-promote');
+            const promotedBanner = document.getElementById('pf-promoted-banner');
+
+            deleteBtn.classList.toggle('hidden', !id);
+            promoteBtn.classList.toggle('hidden', !id);
 
             if (id) {
                 const p = properties.find(item => item.id === id);
@@ -1566,6 +1632,14 @@
                 document.getElementById('pf-buildingArea').value = p.buildingArea || '';
                 document.getElementById('pf-landowners').value = (p.landowners || []).join(', ');
 
+                if (p.isPromoted) {
+                    promotedBanner.classList.remove('hidden');
+                    promoteBtn.classList.add('hidden'); // すでに昇格済みの場合はボタン非表示
+                } else {
+                    promotedBanner.classList.add('hidden');
+                    promoteBtn.classList.remove('hidden');
+                }
+
                 (p.visits || []).forEach(v => addVisitRow(v.date, v.detail));
                 (p.tenants || []).forEach(t => addTenantRow(t.name, t.feel, t.application));
 
@@ -1574,6 +1648,8 @@
             } else {
                 document.getElementById('prop-modal-title').textContent = '新規物件の追加';
                 document.getElementById('pf-id').value = '';
+                promotedBanner.classList.add('hidden');
+                promoteBtn.classList.add('hidden');
                 document.getElementById('pf-linked-projects-list').innerHTML = '<div class="text-xs text-slate-400 py-1">物件保存後に工事案件を紐付けできます</div>';
             }
 
@@ -1791,6 +1867,7 @@
                 tenants: tenants,
                 lat: latVal,
                 lng: lngVal,
+                isPromoted: existingProp ? (existingProp.isPromoted || false) : false,
                 createdAt: id ? (properties.find(p => p.id === id)?.createdAt || new Date().toISOString()) : new Date().toISOString()
             };
 
@@ -2011,6 +2088,17 @@
 
             let latVal = existingProj ? existingProj.lat : null;
             let lngVal = existingProj ? existingProj.lng : null;
+            
+            // 紐付け物件がある場合、その座標を引き継ぐ
+            const linkedPropId = document.getElementById('pjf-propertyId').value;
+            if (linkedPropId) {
+                const linkedProp = properties.find(p => p.id === linkedPropId);
+                if (linkedProp && linkedProp.lat && linkedProp.lng) {
+                    latVal = linkedProp.lat;
+                    lngVal = linkedProp.lng;
+                }
+            }
+
             if (!latVal || !lngVal || (existingProj && existingProj.address !== addressVal)) {
                 const approx = getCoordinatesForAddress(addressVal);
                 if (approx) {
@@ -2022,7 +2110,7 @@
             const projData = {
                 id: id || ('p_' + Date.now()),
                 projectName: document.getElementById('pjf-projectName').value,
-                propertyId: document.getElementById('pjf-propertyId').value,
+                propertyId: linkedPropId,
                 rank: document.getElementById('pjf-rank').value,
                 reason: document.getElementById('pjf-rank').value === '没' ? document.getElementById('pjf-reason').value : '',
                 clientName: document.getElementById('pjf-clientName').value,
@@ -2046,7 +2134,7 @@
                 projects.unshift(projData);
             }
 
-            if (addressVal) {
+            if (addressVal && (!latVal || !lngVal)) {
                 fetchGeocodeGSI(addressVal).then(geo => {
                     if (geo) {
                         const target = projects.find(p => p.id === projData.id);
@@ -2080,7 +2168,7 @@
         }
 
         // ==========================================
-        // 8. Leafletマップ描画 & ピンポイント補正
+        // 8. Leafletマップ描画 (案件化された物件は除外して星ピンへ統一)
         // ==========================================
         function renderMap() {
             const mapContainer = document.getElementById('map-container');
@@ -2114,7 +2202,8 @@
 
             const bounds = [];
 
-            properties.forEach(p => {
+            // 物件マーカー (案件化されていない未昇格の物件のみマップに青の旗マークを表示)
+            properties.filter(p => !p.isPromoted).forEach(p => {
                 let lat = p.lat;
                 let lng = p.lng;
 
@@ -2140,7 +2229,10 @@
                         <div>種別: ${escapeHtml(p.type || '-')} / ランク: ${p.rank}</div>
                         <div class="text-slate-500">${escapeHtml(p.address || '住所未登録')}</div>
                         <div class="text-rose-600 font-semibold text-[10px]">※ドラッグでピンの位置を正確に移動保存できます</div>
-                        <button onclick="openPropertyModal('${p.id}')" class="w-full mt-1 py-1 bg-indigo-600 text-white rounded font-semibold">詳細・編集</button>
+                        <div class="flex gap-1 mt-1">
+                            <button onclick="promotePropertyToProject('${p.id}')" class="flex-1 py-1 bg-emerald-600 text-white rounded font-bold">🚀 昇格</button>
+                            <button onclick="openPropertyModal('${p.id}')" class="flex-1 py-1 bg-indigo-600 text-white rounded font-semibold">詳細・編集</button>
+                        </div>
                     </div>
                 `);
 
@@ -2153,7 +2245,7 @@
 
                 mapMarkers.push(marker);
 
-                if (p.address) {
+                if (p.address && (!p.lat || !p.lng)) {
                     fetchGeocodeGSI(p.address).then(geo => {
                         if (geo) {
                             p.lat = geo.lat;
@@ -2165,6 +2257,7 @@
                 }
             });
 
+            // 案件進捗マーカー (金の星マーク)
             projects.forEach(pj => {
                 let lat = pj.lat;
                 let lng = pj.lng;
@@ -2204,7 +2297,7 @@
 
                 mapMarkers.push(marker);
 
-                if (pj.address) {
+                if (pj.address && (!pj.lat || !pj.lng)) {
                     fetchGeocodeGSI(pj.address).then(geo => {
                         if (geo) {
                             pj.lat = geo.lat;
@@ -2256,7 +2349,7 @@
             }
 
             const blob = new Blob([jsonString], { type: 'application/json;charset=utf-8' });
-            const url = URL.URL ? URL.createObjectURL(blob) : window.webkitURL.createObjectURL(blob);
+            const url = URL.createObjectURL ? URL.createObjectURL(blob) : window.webkitURL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = url;
             link.download = `物件・案件統合データ_${new Date().toISOString().slice(0, 10)}.json`;
