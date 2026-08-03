@@ -84,7 +84,7 @@
                     <span>データ バックアップ/復元</span>
                 </button>
                 <div class="text-center text-xs text-slate-500 py-1">
-                    v3.0 統合版 (ガントチャート対応)
+                    v3.1 統合安定版
                 </div>
             </div>
         </aside>
@@ -671,7 +671,6 @@
         </div>
     </div>
 
-
     <!-- アプリケーション・ロジック JS -->
     <script>
         // ==========================================
@@ -704,7 +703,6 @@
             "宮城県": [38.2688, 140.8719]
         };
 
-        // 住所文字列から即時に市町村レベルの緯度経度を判別する関数
         function getCoordinatesForAddress(address) {
             if (!address) return null;
             for (const [key, coords] of Object.entries(MUNICIPALITY_GEOCODE_MAP)) {
@@ -715,7 +713,6 @@
             return null;
         }
 
-        // 国土地理院 API を用いたリアルタイム住所ジオコーディング
         async function fetchGeocodeGSI(address) {
             if (!address) return null;
             try {
@@ -732,7 +729,7 @@
         }
 
         // ==========================================
-        // 1. 初期提供データ (全13案件 + 物件開発データ)
+        // 1. 初期提供データ (物件開発データ + 全案件データ)
         // ==========================================
         const INITIAL_PROPERTIES = [
             {
@@ -1190,7 +1187,6 @@
             }
         }
 
-        // ランク基準ソート関数
         function sortByRank(a, b) {
             return getRankWeight(a.rank) - getRankWeight(b.rank);
         }
@@ -1271,7 +1267,7 @@
         }
 
         // ==========================================
-        // 5. ダッシュボードレンダリング
+        // 5. ダッシュボード & ガントチャート レンダリング
         // ==========================================
         function renderDashboard() {
             const activeProps = properties.filter(p => p.rank !== '没');
@@ -1291,7 +1287,6 @@
                 : 0;
             document.getElementById('kpi-proj-profit').textContent = `${avgProfit}%`;
 
-            // ガントチャートレンダリング
             renderGanttChart();
 
             // 最新物件活動 (A ➔ B ➔ C ➔ 没順にソート)
@@ -1313,14 +1308,12 @@
                 `;
             }).join('');
 
-            // チャート作成
             renderSectorChart(activeProjs);
         }
 
         function renderGanttChart() {
             const container = document.getElementById('gantt-chart-container');
             
-            // A・Bランクの案件のみ抽出
             let abProjects = projects.filter(p => p.rank === 'A' || p.rank === 'B');
 
             if (abProjects.length === 0) {
@@ -1328,14 +1321,12 @@
                 return;
             }
 
-            // 着工日 (startDate) が早い順にソート（無効日は後ろへ）
             abProjects.sort((a, b) => {
                 if (!a.startDate) return 1;
                 if (!b.startDate) return -1;
                 return new Date(a.startDate) - new Date(b.startDate);
             });
 
-            // ガントチャートの全期間（最小日〜最大日）の計算
             let minTimestamp = Infinity;
             let maxTimestamp = -Infinity;
 
@@ -1352,12 +1343,10 @@
             });
 
             if (minTimestamp === Infinity || maxTimestamp === -Infinity || minTimestamp === maxTimestamp) {
-                // デフォルト日付範囲を生成
                 minTimestamp = new Date('2026-05-01').getTime();
                 maxTimestamp = new Date('2026-12-31').getTime();
             }
 
-            // 余白を広げる (前後10日)
             const marginTime = 10 * 24 * 60 * 60 * 1000;
             const startRange = minTimestamp - marginTime;
             const totalDuration = (maxTimestamp + marginTime) - startRange;
@@ -1365,14 +1354,12 @@
             container.innerHTML = abProjects.map(p => {
                 const rankColor = p.rank === 'A' ? 'bg-rose-100 text-rose-700' : 'bg-amber-100 text-amber-700';
                 
-                // 契約日ピン位置
                 let contractPosPct = null;
                 if (p.contractDate) {
                     const ct = new Date(p.contractDate).getTime();
                     if (!isNaN(ct)) contractPosPct = Math.max(0, Math.min(100, ((ct - startRange) / totalDuration) * 100));
                 }
 
-                // 工期バー位置 (着工日 ➔ 引渡日)
                 let startPosPct = 0;
                 let endPosPct = 0;
                 let hasPeriod = false;
@@ -1404,7 +1391,6 @@
                             </div>
                         </div>
 
-                        <!-- タイムラインバー領域 -->
                         <div class="relative w-full h-6 bg-slate-200/80 rounded-lg overflow-hidden flex items-center">
                             ${hasPeriod ? `
                                 <div class="absolute h-4 bg-emerald-500 rounded-md shadow-sm transition-all flex items-center justify-center text-[10px] text-white font-semibold px-1 truncate" style="left: ${startPosPct}%; width: ${widthPct}%;">
@@ -1470,7 +1456,6 @@
             const search = document.getElementById('prop-search').value.toLowerCase();
             const rankFilter = document.getElementById('prop-rank-filter').value;
 
-            // フィルター & A ➔ B ➔ C ➔ 没順にソート
             const filtered = properties.filter(p => {
                 const matchSearch = p.name.toLowerCase().includes(search) || 
                                     (p.address && p.address.toLowerCase().includes(search)) ||
@@ -1515,7 +1500,6 @@
                     `;
                 }).join('');
             } else {
-                // カンバン表示 (A, B, C, 没列)
                 const kanbanContainer = document.getElementById('prop-container-kanban');
                 const ranks = ['A', 'B', 'C', '没'];
 
@@ -1549,7 +1533,6 @@
             }
         }
 
-        // 物件モダールの開閉と直接編集フォームのセットアップ
         function openPropertyModal(id = null) {
             const modal = document.getElementById('property-modal');
             const form = document.getElementById('property-form');
@@ -1583,12 +1566,9 @@
                 document.getElementById('pf-buildingArea').value = p.buildingArea || '';
                 document.getElementById('pf-landowners').value = (p.landowners || []).join(', ');
 
-                // 現地訪問履歴
                 (p.visits || []).forEach(v => addVisitRow(v.date, v.detail));
-                // テナント意向
                 (p.tenants || []).forEach(t => addTenantRow(t.name, t.feel, t.application));
 
-                // 紐づく工事案件リスト
                 renderLinkedProjectsInModal(p.id);
 
             } else {
@@ -1619,7 +1599,6 @@
             }
         }
 
-        // 動的履歴行の追加
         function addVisitRow(date = '', detail = '') {
             const container = document.getElementById('pf-visits-container');
             const rowId = 'visit-row-' + Date.now() + Math.random().toString(36).substring(2, 5);
@@ -1636,7 +1615,6 @@
             container.appendChild(div);
         }
 
-        // 動的テナント行の追加
         function addTenantRow(name = '', feel = 'B', application = '未受領') {
             const container = document.getElementById('pf-tenants-container');
             const rowId = 'tenant-row-' + Date.now() + Math.random().toString(36).substring(2, 5);
@@ -1731,7 +1709,6 @@
             const container = document.getElementById('attach-project-select-container');
             const select = document.getElementById('attach-project-select');
             
-            // 紐付け対象になれる既存案件（現在この物件に紐づいていないもの）
             const unlinkedOrOther = projects.filter(pj => pj.propertyId !== propId).sort(sortByRank);
 
             if (unlinkedOrOther.length === 0) {
@@ -1756,7 +1733,6 @@
             const pj = projects.find(p => p.id === projId);
             if (pj) {
                 pj.propertyId = propId;
-                // もし施工場所住所が空なら物件住所を自動反映
                 const prop = properties.find(p => p.id === propId);
                 if (prop && prop.address && !pj.address) {
                     pj.address = prop.address;
@@ -1772,14 +1748,12 @@
             e.preventDefault();
             const id = document.getElementById('pf-id').value;
 
-            // 動的履歴取得
             const visitRows = document.querySelectorAll('#pf-visits-container > div');
             const visits = Array.from(visitRows).map(row => ({
                 date: row.querySelector('.v-date').value,
                 detail: row.querySelector('.v-detail').value
             })).filter(v => v.detail.trim() !== '');
 
-            // 動的テナント取得
             const tenantRows = document.querySelectorAll('#pf-tenants-container > div');
             const tenants = Array.from(tenantRows).map(row => ({
                 name: row.querySelector('.t-name').value,
@@ -1790,7 +1764,6 @@
             const addressVal = document.getElementById('pf-address').value;
             const existingProp = properties.find(p => p.id === id);
             
-            // 市町村レベル座標補正
             let latVal = existingProp ? existingProp.lat : null;
             let lngVal = existingProp ? existingProp.lng : null;
             if (!latVal || !lngVal || (existingProp && existingProp.address !== addressVal)) {
@@ -1828,7 +1801,6 @@
                 properties.unshift(propData);
             }
 
-            // GSIジオコーディング
             if (addressVal) {
                 fetchGeocodeGSI(addressVal).then(geo => {
                     if (geo) {
@@ -1848,6 +1820,188 @@
             if (currentTab === 'dashboard') renderDashboard();
         }
 
+        function deletePropertyFromForm() {
+            const id = document.getElementById('pf-id').value;
+            if (!id) return;
+            const prop = properties.find(p => p.id === id);
+            const name = prop ? prop.name : 'この物件';
+            if (confirm(`「${name}」を削除してもよろしいですか？（紐づく工事案件の紐付けは解除されます）`)) {
+                properties = properties.filter(p => p.id !== id);
+                projects.forEach(pj => {
+                    if (pj.propertyId === id) pj.propertyId = '';
+                });
+                saveData();
+                closePropertyModal();
+                renderProperties();
+                if (currentTab === 'dashboard') renderDashboard();
+            }
+        }
+
+        // ==========================================
+        // 7. 案件進捗 描画 & 編集 (renderProjects)
+        // ==========================================
+        function setProjectViewMode(mode) {
+            projectViewMode = mode;
+            document.getElementById('btn-proj-view-table').className = mode === 'table' ? 'px-3 py-1.5 rounded-lg font-medium transition bg-white shadow-sm text-slate-800' : 'px-3 py-1.5 rounded-lg font-medium transition text-slate-500 hover:text-slate-800';
+            document.getElementById('btn-proj-view-kanban').className = mode === 'kanban' ? 'px-3 py-1.5 rounded-lg font-medium transition bg-white shadow-sm text-slate-800' : 'px-3 py-1.5 rounded-lg font-medium transition text-slate-500 hover:text-slate-800';
+
+            document.getElementById('proj-container-table').classList.toggle('hidden', mode !== 'table');
+            document.getElementById('proj-container-kanban').classList.toggle('hidden', mode !== 'kanban');
+
+            renderProjects();
+        }
+
+        function renderProjects() {
+            const searchInput = document.getElementById('proj-search');
+            const search = searchInput ? searchInput.value.toLowerCase() : '';
+            const rankFilterSelect = document.getElementById('proj-rank-filter');
+            const rankFilter = rankFilterSelect ? rankFilterSelect.value : 'all';
+
+            const filtered = projects.filter(p => {
+                const matchSearch = p.projectName.toLowerCase().includes(search) || 
+                                    (p.clientName && p.clientName.toLowerCase().includes(search)) ||
+                                    (p.address && p.address.toLowerCase().includes(search));
+                const matchRank = rankFilter === 'all' || p.rank === rankFilter;
+                return matchSearch && matchRank;
+            }).sort(sortByRank);
+
+            if (projectViewMode === 'table') {
+                const tbody = document.getElementById('proj-table-body');
+                if (!tbody) return;
+                tbody.innerHTML = filtered.map(p => {
+                    const linkedProp = properties.find(pr => pr.id === p.propertyId);
+                    const rankClass = p.rank === 'A' ? 'bg-rose-100 text-rose-700' : p.rank === 'B' ? 'bg-amber-100 text-amber-700' : p.rank === '没' ? 'bg-slate-200 text-slate-600' : 'bg-blue-100 text-blue-700';
+
+                    return `
+                        <tr class="hover:bg-slate-50/80 transition cursor-pointer" onclick="openProjectModal('${p.id}')">
+                            <td class="p-3 sm:p-4">
+                                <div class="font-bold text-slate-800">${escapeHtml(p.projectName)}</div>
+                                <div class="text-xs text-slate-500">${escapeHtml(p.clientName || '発注者未設定')}</div>
+                                ${p.rank === '没' && p.reason ? `<div class="text-xs text-rose-600 mt-1">没理由: ${escapeHtml(p.reason)}</div>` : ''}
+                            </td>
+                            <td class="p-3 sm:p-4 text-center">
+                                <span class="px-2.5 py-1 rounded-full text-xs font-bold ${rankClass}">${p.rank}</span>
+                            </td>
+                            <td class="p-3 sm:p-4 text-xs font-medium text-indigo-600">
+                                ${linkedProp ? `<i class="fa-solid fa-link"></i> ${escapeHtml(linkedProp.name)}` : '<span class="text-slate-400">未紐付け</span>'}
+                            </td>
+                            <td class="p-3 sm:p-4 text-right font-extrabold text-slate-800">
+                                ¥${(Number(p.amount) || 0).toLocaleString()}
+                            </td>
+                            <td class="p-3 sm:p-4 text-center font-semibold text-emerald-600">
+                                ${p.profitRate || 0}%
+                            </td>
+                            <td class="p-3 sm:p-4">
+                                <div class="font-semibold text-slate-700 text-xs">${escapeHtml(p.contractStatus || '未締結')}</div>
+                                ${p.contractDate ? `<div class="text-[11px] text-blue-600">契約: ${p.contractDate}</div>` : ''}
+                            </td>
+                            <td class="p-3 sm:p-4 text-right" onclick="event.stopPropagation()">
+                                <button onclick="openProjectModal('${p.id}')" class="px-3 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-600 rounded-lg text-xs font-semibold transition">
+                                    編集
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            } else {
+                const kanbanContainer = document.getElementById('proj-container-kanban');
+                if (!kanbanContainer) return;
+                const ranks = ['A', 'B', 'C', '没'];
+
+                kanbanContainer.innerHTML = ranks.map(r => {
+                    const rankProjs = filtered.filter(p => p.rank === r);
+                    const headerColor = r === 'A' ? 'border-rose-500 bg-rose-50 text-rose-800' : r === 'B' ? 'border-amber-500 bg-amber-50 text-amber-800' : r === '没' ? 'border-slate-400 bg-slate-100 text-slate-700' : 'border-blue-500 bg-blue-50 text-blue-800';
+
+                    return `
+                        <div class="bg-slate-100/70 rounded-2xl p-3 border border-slate-200 flex flex-col kanban-col">
+                            <div class="p-2.5 rounded-xl border-l-4 font-bold text-sm mb-3 flex items-center justify-between ${headerColor}">
+                                <span>ランク ${r}</span>
+                                <span class="px-2 py-0.5 rounded-full bg-white text-xs font-extrabold shadow-sm">${rankProjs.length}</span>
+                            </div>
+
+                            <div class="space-y-2.5 flex-1 overflow-y-auto max-h-[600px] pr-0.5">
+                                ${rankProjs.map(p => {
+                                    const linkedProp = properties.find(pr => pr.id === p.propertyId);
+                                    return `
+                                        <div onclick="openProjectModal('${p.id}')" class="bg-white p-3.5 rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition cursor-pointer space-y-2">
+                                            <div class="font-bold text-slate-800 text-xs sm:text-sm">${escapeHtml(p.projectName)}</div>
+                                            <div class="text-xs text-slate-500">${escapeHtml(p.clientName || '発注者未設定')}</div>
+                                            ${linkedProp ? `<div class="text-xs text-indigo-600 font-semibold truncate"><i class="fa-solid fa-link"></i> ${escapeHtml(linkedProp.name)}</div>` : ''}
+                                            <div class="text-xs font-extrabold text-slate-800">¥${(Number(p.amount)||0).toLocaleString()} (${p.profitRate || 0}%)</div>
+                                            ${r === '没' && p.reason ? `<div class="p-2 bg-rose-50 text-rose-700 rounded-lg text-xs">理由: ${escapeHtml(p.reason)}</div>` : ''}
+                                        </div>
+                                    `;
+                                }).join('')}
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+        }
+
+        function openProjectModalForProp(propId) {
+            openProjectModal();
+            const select = document.getElementById('pjf-propertyId');
+            if (select) {
+                select.value = propId;
+                onProjectPropertyChange();
+            }
+        }
+
+        function onProjectPropertyChange() {
+            const propId = document.getElementById('pjf-propertyId').value;
+            if (propId) {
+                const prop = properties.find(p => p.id === propId);
+                if (prop && prop.address && !document.getElementById('pjf-address').value) {
+                    document.getElementById('pjf-address').value = prop.address;
+                }
+            }
+        }
+
+        function openProjectModal(id = null) {
+            const modal = document.getElementById('project-modal');
+            const form = document.getElementById('project-form');
+            form.reset();
+
+            const propSelect = document.getElementById('pjf-propertyId');
+            propSelect.innerHTML = '<option value="">-- 物件に紐付けない --</option>' + 
+                properties.map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join('');
+
+            document.getElementById('btn-proj-delete').classList.toggle('hidden', !id);
+
+            if (id) {
+                const p = projects.find(item => item.id === id);
+                if (!p) return;
+
+                document.getElementById('proj-modal-title').textContent = '工事案件の編集';
+                document.getElementById('pjf-id').value = p.id;
+                document.getElementById('pjf-projectName').value = p.projectName || '';
+                document.getElementById('pjf-propertyId').value = p.propertyId || '';
+                document.getElementById('pjf-rank').value = p.rank || 'A';
+                document.getElementById('pjf-reason').value = p.reason || '';
+                document.getElementById('pjf-clientName').value = p.clientName || '';
+                document.getElementById('pjf-sector').value = p.sector || '飲食';
+                document.getElementById('pjf-amount').value = p.amount || '';
+                document.getElementById('pjf-profitRate').value = p.profitRate || '';
+                document.getElementById('pjf-contractStatus').value = p.contractStatus || '未締結';
+                document.getElementById('pjf-contractDate').value = p.contractDate || '';
+                document.getElementById('pjf-startDate').value = p.startDate || '';
+                document.getElementById('pjf-endDate').value = p.endDate || '';
+                document.getElementById('pjf-address').value = p.address || '';
+                document.getElementById('pjf-notes').value = p.notes || '';
+            } else {
+                document.getElementById('proj-modal-title').textContent = '新規工事案件の追加';
+                document.getElementById('pjf-id').value = '';
+            }
+
+            toggleReasonField('pjf');
+            modal.classList.remove('hidden');
+        }
+
+        function closeProjectModal() {
+            document.getElementById('project-modal').classList.add('hidden');
+        }
+
         function saveProject(e) {
             e.preventDefault();
             const id = document.getElementById('pjf-id').value;
@@ -1855,7 +2009,6 @@
             const addressVal = document.getElementById('pjf-address').value;
             const existingProj = projects.find(p => p.id === id);
 
-            // 市町村レベル座標補正
             let latVal = existingProj ? existingProj.lat : null;
             let lngVal = existingProj ? existingProj.lng : null;
             if (!latVal || !lngVal || (existingProj && existingProj.address !== addressVal)) {
@@ -1893,7 +2046,6 @@
                 projects.unshift(projData);
             }
 
-            // GSIジオコーディング
             if (addressVal) {
                 fetchGeocodeGSI(addressVal).then(geo => {
                     if (geo) {
@@ -1913,6 +2065,20 @@
             if (currentTab === 'dashboard') renderDashboard();
         }
 
+        function deleteProjectFromForm() {
+            const id = document.getElementById('pjf-id').value;
+            if (!id) return;
+            const pj = projects.find(p => p.id === id);
+            const name = pj ? pj.projectName : 'この案件';
+            if (confirm(`「${name}」を削除してもよろしいですか？`)) {
+                projects = projects.filter(p => p.id !== id);
+                saveData();
+                closeProjectModal();
+                renderProjects();
+                if (currentTab === 'dashboard') renderDashboard();
+            }
+        }
+
         // ==========================================
         // 8. Leafletマップ描画 & ピンポイント補正
         // ==========================================
@@ -1929,11 +2095,9 @@
 
             setTimeout(() => leafletMap.invalidateSize(), 200);
 
-            // マーカーリセット
             mapMarkers.forEach(m => leafletMap.removeLayer(m));
             mapMarkers = [];
 
-            // 旗マーク Icon (物件)
             const flagIcon = L.divIcon({
                 html: `<div class="flex items-center justify-center w-8 h-8 bg-blue-600 text-white rounded-full shadow-lg border-2 border-white"><i class="fa-solid fa-flag text-sm"></i></div>`,
                 className: '',
@@ -1941,7 +2105,6 @@
                 iconAnchor: [16, 16]
             });
 
-            // 星マーク Icon (案件)
             const starIcon = L.divIcon({
                 html: `<div class="flex items-center justify-center w-8 h-8 bg-amber-500 text-white rounded-full shadow-lg border-2 border-white"><i class="fa-solid fa-star text-sm"></i></div>`,
                 className: '',
@@ -1951,12 +2114,10 @@
 
             const bounds = [];
 
-            // 物件マーカー設置
             properties.forEach(p => {
                 let lat = p.lat;
                 let lng = p.lng;
 
-                // 住所から市町村レベル座標を特定
                 if (!lat || !lng) {
                     const approx = getCoordinatesForAddress(p.address);
                     if (approx) {
@@ -1992,7 +2153,6 @@
 
                 mapMarkers.push(marker);
 
-                // GSIジオコーディング自動補正（バックグラウンド）
                 if (p.address) {
                     fetchGeocodeGSI(p.address).then(geo => {
                         if (geo) {
@@ -2005,12 +2165,10 @@
                 }
             });
 
-            // 案件マーカー設置
             projects.forEach(pj => {
                 let lat = pj.lat;
                 let lng = pj.lng;
 
-                // 住所から市町村レベル座標を特定
                 if (!lat || !lng) {
                     const approx = getCoordinatesForAddress(pj.address);
                     if (approx) {
@@ -2046,7 +2204,6 @@
 
                 mapMarkers.push(marker);
 
-                // GSIジオコーディング自動補正（バックグラウンド）
                 if (pj.address) {
                     fetchGeocodeGSI(pj.address).then(geo => {
                         if (geo) {
@@ -2064,7 +2221,67 @@
             }
         }
 
-        // インポート時の市町村レベル自動座標補正
+        // ==========================================
+        // 9. バックアップ / エクスポート / インポート
+        // ==========================================
+        function openBackupModal() {
+            document.getElementById('backup-modal').classList.remove('hidden');
+        }
+
+        function closeBackupModal() {
+            document.getElementById('backup-modal').classList.add('hidden');
+        }
+
+        async function exportFullData() {
+            const jsonString = JSON.stringify({ properties, projects }, null, 2);
+            
+            if ('showSaveFilePicker' in window) {
+                try {
+                    const handle = await window.showSaveFilePicker({
+                        suggestedName: `物件・案件統合データ_${new Date().toISOString().slice(0, 10)}.json`,
+                        types: [{
+                            description: 'JSON Files',
+                            accept: { 'application/json': ['.json'] }
+                        }]
+                    });
+                    const writable = await handle.createWritable();
+                    await writable.write(jsonString);
+                    await writable.close();
+                    showToast('ファイルを保存しました');
+                    return;
+                } catch (err) {
+                    if (err.name === 'AbortError') return;
+                    console.warn('FilePicker blocked or failed, fallback to standard download:', err);
+                }
+            }
+
+            const blob = new Blob([jsonString], { type: 'application/json;charset=utf-8' });
+            const url = URL.URL ? URL.createObjectURL(blob) : window.webkitURL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `物件・案件統合データ_${new Date().toISOString().slice(0, 10)}.json`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            if (URL.revokeObjectURL) URL.revokeObjectURL(url);
+            showToast('ダウンロードへ保存しました');
+        }
+
+        function showToast(message) {
+            let toast = document.getElementById('app-toast');
+            if (!toast) {
+                toast = document.createElement('div');
+                toast.id = 'app-toast';
+                toast.className = 'fixed bottom-5 right-5 bg-slate-900 text-white text-xs px-4 py-3 rounded-xl shadow-2xl z-50 transition-opacity duration-300 opacity-0 pointer-events-none flex items-center space-x-2';
+                document.body.appendChild(toast);
+            }
+            toast.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-400"></i><span>${escapeHtml(message)}</span>`;
+            toast.classList.remove('opacity-0', 'pointer-events-none');
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'pointer-events-none');
+            }, 3000);
+        }
+
         function handleFileImport(e) {
             const file = e.target.files[0];
             if (!file) return;
@@ -2124,7 +2341,6 @@
             reader.readAsText(file);
         }
 
-        // エスケープ関数
         function escapeHtml(str) {
             if (!str) return '';
             return String(str)
