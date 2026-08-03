@@ -625,6 +625,22 @@
                         <textarea id="pjf-notes" rows="3" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"></textarea>
                     </div>
                 </div>
+
+                <!-- 現地訪問・交信履歴 (物件開発から引き継ぎ・編集対応) -->
+                <div>
+                    <div class="flex items-center justify-between border-b pb-2 mb-3">
+                        <h4 class="text-sm sm:text-base font-bold text-slate-800 flex items-center gap-2">
+                            <i class="fa-solid fa-comments text-blue-500"></i> 現地訪問・交信履歴
+                        </h4>
+                        <button type="button" onclick="addProjectVisitRow()" class="px-3 py-1 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg text-xs font-semibold transition flex items-center space-x-1">
+                            <i class="fa-solid fa-plus"></i>
+                            <span>履歴追加</span>
+                        </button>
+                    </div>
+                    <div id="pjf-visits-container" class="space-y-2">
+                        <!-- JSで動的生成 -->
+                    </div>
+                </div>
             </form>
 
             <div class="p-4 border-t border-slate-200 flex items-center justify-between bg-slate-50 shrink-0">
@@ -1571,17 +1587,24 @@
             const prop = properties.find(p => p.id === propId);
             if (!prop) return;
 
-            if (confirm(`「${prop.name}」を案件進捗管理へ「昇格（案件化）」しますか？\n\n・物件住所や座標情報を取り継いで新規工事案件を作成します。\n・この物件はマップ表示の旗ピン(青)から除外され、作成される案件ピン(星)へ引き継がれます。`)) {
+            if (confirm(`「${prop.name}」を案件進捗管理へ「昇格（案件化）」しますか？\n\n・物件住所や座標情報、これまでの訪問履歴を取り継いで新規工事案件を作成します。\n・この物件はマップ表示の旗ピン(青)から除外され、作成される案件ピン(星)へ引き継がれます。`)) {
                 prop.isPromoted = true;
                 saveData();
 
-                // 新規案件モーダルを開き、物件情報をセット
+                // 新規案件モーダルを開き、物件情報と履歴をセット
                 openProjectModal();
                 
                 document.getElementById('pjf-projectName').value = prop.name;
                 document.getElementById('pjf-propertyId').value = prop.id;
                 document.getElementById('pjf-address').value = prop.address || '';
                 document.getElementById('pjf-rank').value = prop.rank || 'A';
+                
+                // 現地訪問履歴の引き継ぎ
+                const container = document.getElementById('pjf-visits-container');
+                container.innerHTML = '';
+                if (prop.visits && prop.visits.length > 0) {
+                    prop.visits.forEach(v => addProjectVisitRow(v.date, v.detail));
+                }
                 
                 showToast(`「${prop.name}」を案件へ昇格しました！案件情報を設定してください。`);
             }
@@ -1684,6 +1707,23 @@
             div.innerHTML = `
                 <input type="date" value="${date}" class="v-date text-xs p-2 bg-white border border-slate-300 rounded-lg shrink-0">
                 <input type="text" value="${escapeHtml(detail)}" placeholder="面談・交渉内容を入力..." class="v-detail text-xs p-2 bg-white border border-slate-300 rounded-lg flex-1">
+                <button type="button" onclick="document.getElementById('${rowId}').remove()" class="text-rose-500 hover:text-rose-700 p-1.5 rounded">
+                    <i class="fa-solid fa-trash-can"></i>
+                </button>
+            `;
+            container.appendChild(div);
+        }
+
+        // 案件モーダル用 動的履歴行の追加
+        function addProjectVisitRow(date = '', detail = '') {
+            const container = document.getElementById('pjf-visits-container');
+            const rowId = 'pvisit-row-' + Date.now() + Math.random().toString(36).substring(2, 5);
+            const div = document.createElement('div');
+            div.id = rowId;
+            div.className = 'flex items-center gap-2 bg-slate-50 p-2 rounded-xl border border-slate-200';
+            div.innerHTML = `
+                <input type="date" value="${date}" class="pv-date text-xs p-2 bg-white border border-slate-300 rounded-lg shrink-0">
+                <input type="text" value="${escapeHtml(detail)}" placeholder="面談・交渉内容を入力..." class="pv-detail text-xs p-2 bg-white border border-slate-300 rounded-lg flex-1">
                 <button type="button" onclick="document.getElementById('${rowId}').remove()" class="text-rose-500 hover:text-rose-700 p-1.5 rounded">
                     <i class="fa-solid fa-trash-can"></i>
                 </button>
@@ -2040,6 +2080,9 @@
             const form = document.getElementById('project-form');
             form.reset();
 
+            const visitsContainer = document.getElementById('pjf-visits-container');
+            if (visitsContainer) visitsContainer.innerHTML = '';
+
             const propSelect = document.getElementById('pjf-propertyId');
             propSelect.innerHTML = '<option value="">-- 物件に紐付けない --</option>' + 
                 properties.map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join('');
@@ -2066,6 +2109,9 @@
                 document.getElementById('pjf-endDate').value = p.endDate || '';
                 document.getElementById('pjf-address').value = p.address || '';
                 document.getElementById('pjf-notes').value = p.notes || '';
+
+                // 現地訪問履歴の表示
+                (p.visits || []).forEach(v => addProjectVisitRow(v.date, v.detail));
             } else {
                 document.getElementById('proj-modal-title').textContent = '新規工事案件の追加';
                 document.getElementById('pjf-id').value = '';
@@ -2082,6 +2128,13 @@
         function saveProject(e) {
             e.preventDefault();
             const id = document.getElementById('pjf-id').value;
+
+            // 動的履歴取得
+            const visitRows = document.querySelectorAll('#pjf-visits-container > div');
+            const visits = Array.from(visitRows).map(row => ({
+                date: row.querySelector('.pv-date').value,
+                detail: row.querySelector('.pv-detail').value
+            })).filter(v => v.detail.trim() !== '');
 
             const addressVal = document.getElementById('pjf-address').value;
             const existingProj = projects.find(p => p.id === id);
@@ -2123,6 +2176,7 @@
                 endDate: document.getElementById('pjf-endDate').value,
                 address: addressVal,
                 notes: document.getElementById('pjf-notes').value,
+                visits: visits,
                 lat: latVal,
                 lng: lngVal
             };
