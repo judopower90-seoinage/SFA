@@ -79,8 +79,14 @@
                     <i class="fa-solid fa-database text-indigo-400"></i>
                     <span>データ バックアップ/復元</span>
                 </button>
-                <div class="text-center text-xs text-slate-500 py-1">
-                    v3.0 目標管理統合版
+                
+                <!-- C.P.O (Creative Project Office) ワンポイントロゴ -->
+                <div class="pt-2 px-1 flex items-center justify-between opacity-80 hover:opacity-100 transition duration-200">
+                    <div class="flex flex-col select-none">
+                        <span class="font-serif text-xl font-extrabold tracking-widest text-slate-100 leading-none" style="font-family: 'Times New Roman', Times, serif;">C.P.O</span>
+                        <span class="text-[9px] font-sans tracking-wider text-slate-400 mt-0.5">Creative Project Office</span>
+                    </div>
+                    <span class="text-[10px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded-full font-mono border border-slate-700/50">v3.1</span>
                 </div>
             </div>
         </aside>
@@ -145,7 +151,6 @@
 
                     <!-- 四半期 (Q1〜Q4) カード -->
                     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-2">
-                        <!-- Q1 -->
                         <div class="bg-slate-800/80 border border-slate-700/60 rounded-xl p-3.5 space-y-2">
                             <div class="flex items-center justify-between">
                                 <span class="text-xs font-bold text-indigo-300">Q1 (4月〜6月)</span>
@@ -155,7 +160,6 @@
                             <div class="text-[11px] text-slate-400">目標: <span id="dash-q1-target">¥0</span></div>
                         </div>
 
-                        <!-- Q2 -->
                         <div class="bg-slate-800/80 border border-slate-700/60 rounded-xl p-3.5 space-y-2">
                             <div class="flex items-center justify-between">
                                 <span class="text-xs font-bold text-indigo-300">Q2 (7月〜9月)</span>
@@ -165,7 +169,6 @@
                             <div class="text-[11px] text-slate-400">目標: <span id="dash-q2-target">¥0</span></div>
                         </div>
 
-                        <!-- Q3 -->
                         <div class="bg-slate-800/80 border border-slate-700/60 rounded-xl p-3.5 space-y-2">
                             <div class="flex items-center justify-between">
                                 <span class="text-xs font-bold text-indigo-300">Q3 (10月〜12月)</span>
@@ -175,7 +178,6 @@
                             <div class="text-[11px] text-slate-400">目標: <span id="dash-q3-target">¥0</span></div>
                         </div>
 
-                        <!-- Q4 -->
                         <div class="bg-slate-800/80 border border-slate-700/60 rounded-xl p-3.5 space-y-2">
                             <div class="flex items-center justify-between">
                                 <span class="text-xs font-bold text-indigo-300">Q4 (1月〜3月)</span>
@@ -226,9 +228,7 @@
                         </div>
                     </div>
 
-                    <div id="gantt-chart-container" class="overflow-x-auto min-w-full">
-                        <!-- JSでガントチャート描画 -->
-                    </div>
+                    <div id="gantt-chart-container" class="overflow-x-auto min-w-full"></div>
                 </div>
 
                 <!-- チャートと直近データ -->
@@ -244,9 +244,7 @@
                             <h3 class="text-base font-bold text-slate-800">最新の物件開発活動</h3>
                             <button onclick="switchTab('property')" class="text-xs font-semibold text-indigo-600 hover:text-indigo-800">すべて見る →</button>
                         </div>
-                        <div class="space-y-3 overflow-y-auto max-h-64 pr-1" id="dash-recent-properties">
-                            <!-- JSで生成 -->
-                        </div>
+                        <div class="space-y-3 overflow-y-auto max-h-64 pr-1" id="dash-recent-properties"></div>
                     </div>
                 </div>
             </section>
@@ -304,14 +302,12 @@
                                     <th class="p-3 sm:p-4 text-right">操作</th>
                                 </tr>
                             </thead>
-                            <tbody id="prop-table-body" class="divide-y divide-slate-100 text-xs sm:text-sm">
-                            </tbody>
+                            <tbody id="prop-table-body" class="divide-y divide-slate-100 text-xs sm:text-sm"></tbody>
                         </table>
                     </div>
                 </div>
 
-                <div id="prop-container-kanban" class="hidden grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                </div>
+                <div id="prop-container-kanban" class="hidden grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"></div>
             </section>
 
             <!-- 3. 案件進捗管理画面 -->
@@ -367,14 +363,12 @@
                                     <th class="p-3 sm:p-4 text-right">操作</th>
                                 </tr>
                             </thead>
-                            <tbody id="proj-table-body" class="divide-y divide-slate-100 text-xs sm:text-sm">
-                            </tbody>
+                            <tbody id="proj-table-body" class="divide-y divide-slate-100 text-xs sm:text-sm"></tbody>
                         </table>
                     </div>
                 </div>
 
-                <div id="proj-container-kanban" class="hidden grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                </div>
+                <div id="proj-container-kanban" class="hidden grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"></div>
             </section>
 
             <!-- 4. マップ表示画面 -->
@@ -657,9 +651,19 @@
                     </div>
 
                     <div>
-                        <label class="block font-semibold text-slate-700 mb-1">紐付ける開発物件</label>
-                        <select id="pjf-propertyId" onchange="onProjectPropertyChange()" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500">
+                        <div class="flex items-center justify-between mb-1">
+                            <label class="block font-semibold text-slate-700">紐付ける開発物件</label>
+                            <span id="pjf-lock-badge" class="hidden text-[10px] bg-amber-100 text-amber-800 font-bold px-2 py-0.5 rounded">
+                                <i class="fa-solid fa-lock text-[9px] mr-0.5"></i> 紐づけ固定中
+                            </span>
+                        </div>
+                        <select id="pjf-propertyId" onchange="onProjectPropertyChange()" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 disabled:bg-slate-200 disabled:text-slate-600 disabled:cursor-not-allowed">
                         </select>
+                        <div id="pjf-unlink-box" class="hidden mt-1 text-right">
+                            <button type="button" onclick="unlinkProjectFromPropertyInProjectModal()" class="text-xs text-rose-600 hover:text-rose-800 font-semibold underline">
+                                <i class="fa-solid fa-link-slash mr-1"></i>物件紐づけを解除 (本案件は削除されます)
+                            </button>
+                        </div>
                     </div>
 
                     <div>
@@ -896,7 +900,8 @@
                 "lat": 36.29657,
                 "lng": 139.60517,
                 "createdAt": "2026-06-24T09:19:22.867Z",
-                "promoted": true
+                "promoted": true,
+                "linkedProjectId": "p_1784769094128"
             }
         ];
 
@@ -1015,7 +1020,7 @@
         let leafletMap = null;
         let mapMarkers = [];
 
-        // ランク順定義
+        // ランク順定義 (A ➔ B ➔ C ➔ 没)
         const RANK_ORDER = { 'A': 1, 'B': 2, 'C': 3, '没': 4 };
 
         function sortItemsByRank(items) {
@@ -1170,16 +1175,14 @@
 
             activeProjs.forEach(p => {
                 const amt = Number(p.amount) || 0;
-                // 基準日: 引渡日 > 着工日 > 契約日
                 const refDateStr = p.endDate || p.startDate || p.contractDate;
                 if (refDateStr) {
-                    const month = new Date(refDateStr).getMonth() + 1; // 1〜12
+                    const month = new Date(refDateStr).getMonth() + 1;
                     if (month >= 4 && month <= 6) qActuals.Q1 += amt;
                     else if (month >= 7 && month <= 9) qActuals.Q2 += amt;
                     else if (month >= 10 && month <= 12) qActuals.Q3 += amt;
-                    else qActuals.Q4 += amt; // 1, 2, 3月
+                    else qActuals.Q4 += amt;
                 } else {
-                    // 日付未設定の場合はQ1にカウント
                     qActuals.Q1 += amt;
                 }
             });
@@ -1212,10 +1215,8 @@
             renderQCard('Q3', q3Target, qActuals.Q3);
             renderQCard('Q4', q4Target, qActuals.Q4);
 
-            // スケジュールガントチャート描画
             renderGanttChart();
 
-            // 最新物件活動リスト (A ➔ B ➔ C ➔ 没 順)
             const sortedProps = sortItemsByRank(properties);
             const dashRecentList = document.getElementById('dash-recent-properties');
             dashRecentList.innerHTML = sortedProps.slice(0, 5).map(p => {
@@ -1238,7 +1239,6 @@
             renderSectorChart(activeProjs);
         }
 
-        // ガントチャート描画機能 (A, Bランク案件を着工日順)
         function renderGanttChart() {
             const container = document.getElementById('gantt-chart-container');
             const abProjects = projects.filter(p => (p.rank === 'A' || p.rank === 'B') && p.startDate && p.endDate);
@@ -1248,10 +1248,8 @@
                 return;
             }
 
-            // 着工日昇順ソート
             abProjects.sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
 
-            // 全体日付範囲計算
             let minTime = Infinity;
             let maxTime = -Infinity;
 
@@ -1264,13 +1262,12 @@
                 if (e > maxTime) maxTime = e;
             });
 
-            // マージン(前後1週間)
             minTime -= 7 * 24 * 60 * 60 * 1000;
             maxTime += 7 * 24 * 60 * 60 * 1000;
             const totalDuration = maxTime - minTime;
 
             container.innerHTML = `
-                <div class="space-y-3 min-w-[650px]">
+                <div class="space-y-4 min-w-[650px] pt-3">
                     ${abProjects.map(p => {
                         const sTime = new Date(p.startDate).getTime();
                         const eTime = new Date(p.endDate).getTime();
@@ -1278,8 +1275,6 @@
 
                         const leftPct = Math.max(0, ((sTime - minTime) / totalDuration) * 100);
                         const widthPct = Math.min(100 - leftPct, Math.max(2, ((eTime - sTime) / totalDuration) * 100));
-
-                        // 工期日数計算
                         const daysDiff = Math.ceil((eTime - sTime) / (1000 * 60 * 60 * 24)) + 1;
 
                         let contractMarkerLeft = null;
@@ -1301,14 +1296,14 @@
                                     </div>
                                 </div>
                                 
-                                <div class="relative w-full h-8 bg-slate-100 rounded-lg overflow-hidden border border-slate-200">
+                                <div class="relative w-full h-9 bg-slate-100 rounded-lg border border-slate-200">
                                     ${contractMarkerLeft !== null ? `
-                                        <div class="absolute top-0 bottom-0 w-1 bg-amber-500 z-20" style="left: ${contractMarkerLeft}%" title="契約日: ${p.contractDate}">
-                                            <div class="absolute -top-1 -left-1.5 w-4 h-4 bg-amber-500 text-white rounded-full flex items-center justify-center text-[9px] font-bold shadow">契</div>
+                                        <div class="absolute top-0 bottom-0 w-0.5 bg-amber-500 z-20" style="left: ${contractMarkerLeft}%" title="契約日: ${p.contractDate}">
+                                            <div class="absolute -top-2.5 -left-2.5 w-5 h-5 bg-amber-500 text-white rounded-full flex items-center justify-center text-[10px] font-bold shadow-md border-2 border-white">契</div>
                                         </div>
                                     ` : ''}
 
-                                    <div class="absolute top-1 bottom-1 bg-emerald-500 text-white rounded-md text-[11px] font-bold flex items-center justify-center px-2 shadow-sm truncate z-10"
+                                    <div class="absolute top-1.5 bottom-1.5 bg-emerald-500 text-white rounded-md text-[11px] font-bold flex items-center justify-center px-2 shadow-sm truncate z-10"
                                          style="left: ${leftPct}%; width: ${widthPct}%;">
                                         工期 ${daysDiff} 日
                                     </div>
@@ -1365,7 +1360,6 @@
             const search = document.getElementById('prop-search').value.toLowerCase();
             const rankFilter = document.getElementById('prop-rank-filter').value;
 
-            // ランク別にソート
             const sortedProperties = sortItemsByRank(properties);
 
             const filtered = sortedProperties.filter(p => {
@@ -1451,10 +1445,15 @@
             }
         }
 
-        // 昇格（案件化）処理
         function promoteProperty(propId) {
             const p = properties.find(item => item.id === propId);
             if (!p) return;
+
+            if (p.promoted && p.linkedProjectId) {
+                const existingPj = projects.find(pj => pj.id === p.linkedProjectId);
+                showToast(`この物件は既に案件「${existingPj ? existingPj.projectName : ''}」と紐づいています`);
+                return;
+            }
 
             p.promoted = true;
             saveData();
@@ -1465,7 +1464,11 @@
             document.getElementById('pjf-address').value = p.address || '';
             document.getElementById('pjf-rank').value = p.rank || 'A';
 
-            // 訪問履歴を引き継ぎ
+            const selectEl = document.getElementById('pjf-propertyId');
+            selectEl.disabled = true;
+            document.getElementById('pjf-lock-badge').classList.remove('hidden');
+            document.getElementById('pjf-unlink-box').classList.remove('hidden');
+
             const progressContainer = document.getElementById('pjf-progress-container');
             progressContainer.innerHTML = '';
             (p.visits || []).forEach(v => addProjectProgressRow(v.date, v.detail));
@@ -1514,6 +1517,17 @@
                 (p.tenants || []).forEach(t => addTenantRow(t.name, t.feel, t.application));
 
                 renderLinkedProjectsInModal(p.id);
+
+                const btnPromote = document.getElementById('btn-prop-promote');
+                if (p.promoted) {
+                    btnPromote.innerHTML = '<i class="fa-solid fa-lock mr-1"></i> 案件化済み (紐づけ固定)';
+                    btnPromote.className = 'px-3.5 py-2 bg-slate-300 text-slate-600 font-semibold rounded-xl text-xs sm:text-sm cursor-not-allowed';
+                    btnPromote.onclick = () => showToast('この物件は既に案件化され固定されています');
+                } else {
+                    btnPromote.innerHTML = '<i class="fa-solid fa-rocket mr-1"></i> 案件へ昇格 (案件化)';
+                    btnPromote.className = 'px-3.5 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 text-white hover:from-emerald-700 hover:to-teal-700 rounded-xl text-xs sm:text-sm font-semibold shadow transition';
+                    btnPromote.onclick = promotePropertyToProject;
+                }
             } else {
                 document.getElementById('prop-modal-title').textContent = '新規物件の追加';
                 document.getElementById('pf-id').value = '';
@@ -1583,6 +1597,7 @@
         function renderLinkedProjectsInModal(propId) {
             const container = document.getElementById('pf-linked-projects-list');
             const linked = projects.filter(pj => pj.propertyId === propId);
+            const prop = properties.find(p => p.id === propId);
 
             let html = linked.map(pj => `
                 <div class="p-2.5 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between">
@@ -1591,31 +1606,39 @@
                         <div class="text-[11px] text-slate-500">¥${(Number(pj.amount)||0).toLocaleString()} / ${escapeHtml(pj.contractStatus || '未締結')}</div>
                     </div>
                     <div class="flex items-center space-x-1">
-                        <button type="button" onclick="unlinkProjectFromProperty('${pj.id}')" class="px-2 py-1 text-rose-600 bg-rose-50 rounded text-xs font-semibold">解除</button>
                         <button type="button" onclick="closePropertyModal(); openProjectModal('${pj.id}')" class="px-2.5 py-1 bg-white border border-slate-300 rounded text-xs font-semibold">編集</button>
                     </div>
                 </div>
             `).join('');
 
-            html += `
-                <div class="flex items-center gap-2 mt-2">
-                    <button type="button" onclick="openSelectExistingProjectModal('${propId}')" class="flex-1 py-2 bg-indigo-50 border border-indigo-200 text-indigo-700 hover:bg-indigo-100 rounded-xl text-xs font-semibold transition">
-                        <i class="fa-solid fa-link mr-1"></i> 既存案件から選択
-                    </button>
-                    <button type="button" onclick="openProjectModalForProp('${propId}')" class="flex-1 py-2 bg-emerald-50 border border-emerald-200 text-emerald-700 hover:bg-emerald-100 rounded-xl text-xs font-semibold transition">
-                        <i class="fa-solid fa-plus mr-1"></i> 新規案件を作成
-                    </button>
-                </div>
-            `;
+            if (prop && prop.promoted && linked.length > 0) {
+                html += `
+                    <div class="p-2 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 text-xs font-medium flex items-center space-x-2 mt-2">
+                        <i class="fa-solid fa-lock text-amber-600"></i>
+                        <span>この物件は工事案件と相互ロックされています（他案件への変更不可）</span>
+                    </div>
+                `;
+            } else {
+                html += `
+                    <div class="flex items-center gap-2 mt-2">
+                        <button type="button" onclick="openSelectExistingProjectModal('${propId}')" class="flex-1 py-2 bg-indigo-50 border border-indigo-200 text-indigo-700 hover:bg-indigo-100 rounded-xl text-xs font-semibold transition">
+                            <i class="fa-solid fa-link mr-1"></i> 既存案件から選択
+                        </button>
+                        <button type="button" onclick="openProjectModalForProp('${propId}')" class="flex-1 py-2 bg-emerald-50 border border-emerald-200 text-emerald-700 hover:bg-emerald-100 rounded-xl text-xs font-semibold transition">
+                            <i class="fa-solid fa-plus mr-1"></i> 新規案件を作成
+                        </button>
+                    </div>
+                `;
+            }
             container.innerHTML = html;
         }
 
         function openSelectExistingProjectModal(propId) {
             const list = document.getElementById('existing-projects-selectable-list');
-            const available = projects.filter(p => p.propertyId !== propId);
+            const available = projects.filter(p => !p.propertyId || p.propertyId === '');
 
             if (available.length === 0) {
-                list.innerHTML = `<div class="p-4 text-center text-xs text-slate-400">選択可能な工事案件がありません</div>`;
+                list.innerHTML = `<div class="p-4 text-center text-xs text-slate-400">選択可能な未紐付け工事案件がありません</div>`;
             } else {
                 list.innerHTML = available.map(p => `
                     <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between">
@@ -1642,23 +1665,14 @@
             if (pj && prop) {
                 pj.propertyId = propId;
                 pj.address = prop.address || pj.address;
+                prop.promoted = true;
+                prop.linkedProjectId = pjId;
                 saveData();
                 closeSelectExistingProjectModal();
                 renderLinkedProjectsInModal(propId);
                 renderProjects();
-                showToast('工事案件を紐付けました');
-            }
-        }
-
-        function unlinkProjectFromProperty(pjId) {
-            const pj = projects.find(p => p.id === pjId);
-            if (pj) {
-                const currentPropId = pj.propertyId;
-                pj.propertyId = '';
-                saveData();
-                renderLinkedProjectsInModal(currentPropId);
-                renderProjects();
-                showToast('紐付けを解除しました');
+                renderProperties();
+                showToast('工事案件を相互紐付けしました');
             }
         }
 
@@ -1693,6 +1707,7 @@
                 visits: visits,
                 tenants: tenants,
                 promoted: id ? (properties.find(p => p.id === id)?.promoted || false) : false,
+                linkedProjectId: id ? (properties.find(p => p.id === id)?.linkedProjectId || '') : '',
                 createdAt: id ? (properties.find(p => p.id === id)?.createdAt || new Date().toISOString()) : new Date().toISOString()
             };
 
@@ -1741,7 +1756,6 @@
             const search = document.getElementById('proj-search').value.toLowerCase();
             const rankFilter = document.getElementById('proj-rank-filter').value;
 
-            // ランク別ソート
             const sortedProjects = sortItemsByRank(projects);
 
             const filtered = sortedProjects.filter(p => {
@@ -1840,22 +1854,57 @@
             }
         }
 
+        function unlinkProjectFromPropertyInProjectModal() {
+            const pjId = document.getElementById('pjf-id').value;
+            const propId = document.getElementById('pjf-propertyId').value;
+
+            if (!pjId) return;
+
+            if (confirm('物件との紐づけを解除すると、この工事案件は一覧から削除され、元の物件は未昇格状態に戻ります。実行しますか？')) {
+                if (propId) {
+                    const prop = properties.find(p => p.id === propId);
+                    if (prop) {
+                        prop.promoted = false;
+                        delete prop.linkedProjectId;
+                    }
+                }
+
+                projects = projects.filter(p => p.id !== pjId);
+
+                saveData();
+                closeProjectModal();
+                renderProjects();
+                renderProperties();
+                if (currentTab === 'dashboard') renderDashboard();
+                showToast('物件との紐づけを解除し、工事案件を削除しました');
+            }
+        }
+
         function openProjectModal(id = null) {
             const modal = document.getElementById('project-modal');
             const form = document.getElementById('project-form');
             form.reset();
 
+            const p = id ? projects.find(item => item.id === id) : null;
+            const isLinked = p && p.propertyId;
+
             const propSelect = document.getElementById('pjf-propertyId');
+            
+            const availableProps = properties.filter(prop => {
+                if (isLinked && prop.id === p.propertyId) return true;
+                return !prop.promoted;
+            });
+
             propSelect.innerHTML = '<option value="">-- 物件に紐付けない --</option>' + 
-                properties.map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join('');
+                availableProps.map(prop => `<option value="${prop.id}">${escapeHtml(prop.name)} ${prop.id === p?.propertyId ? '(紐づけ中)' : ''}</option>`).join('');
 
             document.getElementById('pjf-progress-container').innerHTML = '';
             document.getElementById('btn-proj-delete').classList.toggle('hidden', !id);
 
-            if (id) {
-                const p = projects.find(item => item.id === id);
-                if (!p) return;
+            const lockBadge = document.getElementById('pjf-lock-badge');
+            const unlinkBox = document.getElementById('pjf-unlink-box');
 
+            if (id && p) {
                 document.getElementById('proj-modal-title').textContent = '工事案件の編集';
                 document.getElementById('pjf-id').value = p.id;
                 document.getElementById('pjf-projectName').value = p.projectName || '';
@@ -1873,9 +1922,22 @@
                 document.getElementById('pjf-address').value = p.address || '';
 
                 (p.progressHistory || []).forEach(v => addProjectProgressRow(v.date, v.detail));
+
+                if (p.propertyId) {
+                    propSelect.disabled = true;
+                    lockBadge.classList.remove('hidden');
+                    unlinkBox.classList.remove('hidden');
+                } else {
+                    propSelect.disabled = false;
+                    lockBadge.classList.add('hidden');
+                    unlinkBox.classList.add('hidden');
+                }
             } else {
                 document.getElementById('proj-modal-title').textContent = '新規工事案件の追加';
                 document.getElementById('pjf-id').value = '';
+                propSelect.disabled = false;
+                lockBadge.classList.add('hidden');
+                unlinkBox.classList.add('hidden');
             }
 
             toggleReasonField('pjf');
@@ -1903,16 +1965,19 @@
         function saveProject(e) {
             e.preventDefault();
             const id = document.getElementById('pjf-id').value;
+            const selectedPropId = document.getElementById('pjf-propertyId').value;
 
             const progressHistory = Array.from(document.querySelectorAll('#pjf-progress-container > div')).map(row => ({
                 date: row.querySelector('.pj-date').value,
                 detail: row.querySelector('.pj-detail').value
             })).filter(v => v.detail.trim() !== '');
 
+            const projId = id || ('p_' + Date.now());
+
             const projData = {
-                id: id || ('p_' + Date.now()),
+                id: projId,
                 projectName: document.getElementById('pjf-projectName').value,
-                propertyId: document.getElementById('pjf-propertyId').value,
+                propertyId: selectedPropId,
                 rank: document.getElementById('pjf-rank').value,
                 reason: document.getElementById('pjf-rank').value === '没' ? document.getElementById('pjf-reason').value : '',
                 clientName: document.getElementById('pjf-clientName').value,
@@ -1927,6 +1992,14 @@
                 progressHistory: progressHistory
             };
 
+            if (selectedPropId) {
+                const prop = properties.find(p => p.id === selectedPropId);
+                if (prop) {
+                    prop.promoted = true;
+                    prop.linkedProjectId = projId;
+                }
+            }
+
             if (id) {
                 const idx = projects.findIndex(p => p.id === id);
                 if (idx !== -1) projects[idx] = { ...projects[idx], ...projData };
@@ -1937,6 +2010,7 @@
             saveData();
             closeProjectModal();
             renderProjects();
+            renderProperties();
             if (currentTab === 'dashboard') renderDashboard();
             showToast('工事案件を保存しました');
         }
@@ -1996,7 +2070,6 @@
 
             const bounds = [];
 
-            // 昇格（案件化済）されていない物件のみフラグ表示
             properties.filter(p => !p.promoted).forEach(p => {
                 let lat = p.lat;
                 let lng = p.lng;
@@ -2034,7 +2107,6 @@
                 mapMarkers.push(marker);
             });
 
-            // 工事案件マーカー設置
             projects.forEach(pj => {
                 let lat = pj.lat;
                 let lng = pj.lng;
