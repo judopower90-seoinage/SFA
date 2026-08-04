@@ -22,7 +22,7 @@
         ::-webkit-scrollbar-track { background: #f1f1f1; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
         ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-        .touch-action-none { touch-action: none; }
+        .gantt-row { min-height: 44px; }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-800 antialiased selection:bg-indigo-500 selection:text-white">
@@ -46,13 +46,11 @@
         <!-- サイドバー (PC:固定, モバイル:ドロワー) -->
         <aside id="sidebar" class="fixed top-0 left-0 bottom-0 w-64 bg-slate-900 text-slate-300 z-50 flex flex-col justify-between transition-transform duration-300 transform -translate-x-full md:translate-x-0 shadow-xl md:shadow-none">
             <div>
-                <!-- ロゴ (PC用) -->
                 <div class="p-5 border-b border-slate-800 hidden md:flex items-center space-x-3">
                     <i class="fa-solid fa-building-circle-check text-indigo-400 text-2xl"></i>
                     <h1 class="text-xl font-bold text-white tracking-wider">物件＆案件管理</h1>
                 </div>
                 
-                <!-- ナビゲーションメニュー -->
                 <nav class="p-3 space-y-1 mt-2">
                     <button onclick="switchTab('dashboard')" id="nav-dashboard" class="w-full flex items-center space-x-3 px-4 py-3 rounded-xl font-medium transition text-indigo-400 bg-slate-800/80">
                         <i class="fa-solid fa-chart-pie w-5 text-center text-lg"></i>
@@ -76,14 +74,13 @@
                 </nav>
             </div>
 
-            <!-- 下部アクション -->
             <div class="p-3 border-t border-slate-800 space-y-2">
                 <button onclick="openBackupModal()" class="w-full flex items-center justify-center space-x-2 px-3 py-2.5 rounded-lg text-sm bg-slate-800 hover:bg-slate-700 text-slate-200 transition">
                     <i class="fa-solid fa-database text-indigo-400"></i>
                     <span>データ バックアップ/復元</span>
                 </button>
                 <div class="text-center text-xs text-slate-500 py-1">
-                    統合システム v3.5 (正確動作検証版)
+                    v3.0 目標管理統合版
                 </div>
             </div>
         </aside>
@@ -93,12 +90,17 @@
             
             <!-- 1. ダッシュボード画面 -->
             <section id="view-dashboard" class="space-y-6">
+                <!-- ヘッダー -->
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-slate-200">
                     <div>
-                        <h2 class="text-xl sm:text-2xl font-bold text-slate-800">全体サマリー</h2>
-                        <p class="text-xs sm:text-sm text-slate-500">物件開発と工事案件の統合リアルタイムステータス</p>
+                        <h2 class="text-xl sm:text-2xl font-bold text-slate-800">全体サマリー＆目標進捗</h2>
+                        <p class="text-xs sm:text-sm text-slate-500">年間・四半期目標の達成度と工事ガントチャート</p>
                     </div>
                     <div class="flex items-center gap-2">
+                        <button onclick="openTargetModal()" class="flex-1 sm:flex-none flex items-center justify-center space-x-2 px-4 py-2.5 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-sm font-semibold shadow-sm transition">
+                            <i class="fa-solid fa-sliders"></i>
+                            <span>目標設定</span>
+                        </button>
                         <button onclick="openPropertyModal()" class="flex-1 sm:flex-none flex items-center justify-center space-x-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold shadow-sm transition">
                             <i class="fa-solid fa-plus"></i>
                             <span>物件追加</span>
@@ -110,12 +112,87 @@
                     </div>
                 </div>
 
+                <!-- 目標＆四半期達成度セクション -->
+                <div class="bg-gradient-to-br from-slate-900 to-indigo-950 text-white p-5 sm:p-6 rounded-2xl shadow-md space-y-6">
+                    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+                        <div>
+                            <div class="text-xs font-semibold text-indigo-400 uppercase tracking-wider">ANNUAL TARGET</div>
+                            <div class="text-xl sm:text-2xl font-black mt-1">今期 年間目標進捗</div>
+                        </div>
+                        <div class="flex items-baseline space-x-3">
+                            <div class="text-right">
+                                <div class="text-xs text-slate-400">受注実績累計</div>
+                                <div class="text-2xl sm:text-3xl font-extrabold text-emerald-400" id="dash-annual-actual">¥0</div>
+                            </div>
+                            <div class="text-slate-500 text-xl font-light">/</div>
+                            <div class="text-right">
+                                <div class="text-xs text-slate-400">年間目標額</div>
+                                <div class="text-lg sm:text-xl font-bold text-slate-300" id="dash-annual-target">¥0</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 年間プログレスバー -->
+                    <div class="space-y-1.5">
+                        <div class="flex justify-between text-xs font-bold">
+                            <span>年間達成度</span>
+                            <span id="dash-annual-percent-text" class="text-emerald-400">0%</span>
+                        </div>
+                        <div class="w-full bg-slate-800 rounded-full h-3.5 overflow-hidden p-0.5">
+                            <div id="dash-annual-progress-bar" class="bg-gradient-to-r from-emerald-500 to-teal-400 h-full rounded-full transition-all duration-500" style="width: 0%"></div>
+                        </div>
+                    </div>
+
+                    <!-- 四半期 (Q1〜Q4) カード -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-2">
+                        <!-- Q1 -->
+                        <div class="bg-slate-800/80 border border-slate-700/60 rounded-xl p-3.5 space-y-2">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-bold text-indigo-300">Q1 (4月〜6月)</span>
+                                <span id="dash-q1-percent" class="text-xs font-extrabold px-2 py-0.5 rounded-full bg-slate-700 text-emerald-400">0%</span>
+                            </div>
+                            <div class="text-lg font-bold text-white" id="dash-q1-actual">¥0</div>
+                            <div class="text-[11px] text-slate-400">目標: <span id="dash-q1-target">¥0</span></div>
+                        </div>
+
+                        <!-- Q2 -->
+                        <div class="bg-slate-800/80 border border-slate-700/60 rounded-xl p-3.5 space-y-2">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-bold text-indigo-300">Q2 (7月〜9月)</span>
+                                <span id="dash-q2-percent" class="text-xs font-extrabold px-2 py-0.5 rounded-full bg-slate-700 text-emerald-400">0%</span>
+                            </div>
+                            <div class="text-lg font-bold text-white" id="dash-q2-actual">¥0</div>
+                            <div class="text-[11px] text-slate-400">目標: <span id="dash-q2-target">¥0</span></div>
+                        </div>
+
+                        <!-- Q3 -->
+                        <div class="bg-slate-800/80 border border-slate-700/60 rounded-xl p-3.5 space-y-2">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-bold text-indigo-300">Q3 (10月〜12月)</span>
+                                <span id="dash-q3-percent" class="text-xs font-extrabold px-2 py-0.5 rounded-full bg-slate-700 text-emerald-400">0%</span>
+                            </div>
+                            <div class="text-lg font-bold text-white" id="dash-q3-actual">¥0</div>
+                            <div class="text-[11px] text-slate-400">目標: <span id="dash-q3-target">¥0</span></div>
+                        </div>
+
+                        <!-- Q4 -->
+                        <div class="bg-slate-800/80 border border-slate-700/60 rounded-xl p-3.5 space-y-2">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-bold text-indigo-300">Q4 (1月〜3月)</span>
+                                <span id="dash-q4-percent" class="text-xs font-extrabold px-2 py-0.5 rounded-full bg-slate-700 text-emerald-400">0%</span>
+                            </div>
+                            <div class="text-lg font-bold text-white" id="dash-q4-actual">¥0</div>
+                            <div class="text-[11px] text-slate-400">目標: <span id="dash-q4-target">¥0</span></div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- KPIカード指標 -->
                 <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5">
                     <div class="bg-white p-4 sm:p-5 rounded-2xl shadow-sm border border-slate-200">
-                        <div class="text-xs sm:text-sm font-semibold text-slate-500">開発中物件数</div>
+                        <div class="text-xs sm:text-sm font-semibold text-slate-500">総物件開発数</div>
                         <div class="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-2" id="kpi-prop-count">0</div>
-                        <div class="text-xs text-indigo-600 mt-1 font-medium" id="kpi-prop-ranka">A: 0件</div>
+                        <div class="text-xs text-indigo-600 mt-1 font-medium" id="kpi-prop-ranka">Rank A: 0件</div>
                     </div>
                     <div class="bg-white p-4 sm:p-5 rounded-2xl shadow-sm border border-slate-200">
                         <div class="text-xs sm:text-sm font-semibold text-slate-500">進行中工事案件</div>
@@ -134,33 +211,23 @@
                     </div>
                 </div>
 
-                <!-- A・Bランク案件 ガントチャート -->
+                <!-- A・Bランク案件 工事ガントチャート (着工日順) -->
                 <div class="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4">
-                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
-                        <div class="flex items-center space-x-2">
-                            <i class="fa-solid fa-chart-gantt text-emerald-600 text-lg"></i>
-                            <h3 class="text-base font-bold text-slate-800">A・Bランク案件 工程タイムライン (ガントチャート)</h3>
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b pb-3">
+                        <div>
+                            <h3 class="text-base font-bold text-slate-800 flex items-center gap-2">
+                                <i class="fa-solid fa-timeline text-indigo-600"></i> A・Bランク案件 スケジュールガントチャート
+                            </h3>
+                            <p class="text-xs text-slate-500">契約日 〜 着工予定日 〜 引渡日（着工予定日が早い順）</p>
                         </div>
-                        <span class="text-xs text-slate-500">※ 着工日が早い順に表示（契約日 ➔ 着工予定日 ➔ 引渡日）</span>
+                        <div class="flex items-center gap-3 text-xs">
+                            <span class="inline-flex items-center space-x-1"><span class="w-3 h-3 rounded-full bg-emerald-500 inline-block"></span><span>工期（工期〇〇日）</span></span>
+                            <span class="inline-flex items-center space-x-1"><span class="w-3 h-3 rounded-full bg-amber-500 inline-block"></span><span>契約日</span></span>
+                        </div>
                     </div>
 
-                    <!-- 凡例 -->
-                    <div class="flex flex-wrap gap-4 text-xs">
-                        <span class="inline-flex items-center space-x-1">
-                            <span class="w-3 h-3 rounded-full bg-blue-500 inline-block"></span>
-                            <span>契約日</span>
-                        </span>
-                        <span class="inline-flex items-center space-x-1">
-                            <span class="w-3 h-3 rounded-full bg-emerald-500 inline-block"></span>
-                            <span>着工〜引渡 期間 (工期日数表示)</span>
-                        </span>
-                    </div>
-
-                    <!-- ガントチャート表示エリア -->
-                    <div class="overflow-x-auto">
-                        <div id="gantt-chart-container" class="min-w-[650px] space-y-3 pt-2">
-                            <!-- JSで生成 -->
-                        </div>
+                    <div id="gantt-chart-container" class="overflow-x-auto min-w-full">
+                        <!-- JSでガントチャート描画 -->
                     </div>
                 </div>
 
@@ -174,7 +241,7 @@
                     </div>
                     <div class="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-slate-200 lg:col-span-2">
                         <div class="flex items-center justify-between mb-4">
-                            <h3 class="text-base font-bold text-slate-800">最新の物件開発活動 (A ➔ B ➔ C ➔ 没順)</h3>
+                            <h3 class="text-base font-bold text-slate-800">最新の物件開発活動</h3>
                             <button onclick="switchTab('property')" class="text-xs font-semibold text-indigo-600 hover:text-indigo-800">すべて見る →</button>
                         </div>
                         <div class="space-y-3 overflow-y-auto max-h-64 pr-1" id="dash-recent-properties">
@@ -186,15 +253,13 @@
 
             <!-- 2. 物件開発一覧画面 -->
             <section id="view-property" class="space-y-6 hidden">
-                <!-- アクションバー -->
                 <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-slate-200">
                     <div>
                         <h2 class="text-xl sm:text-2xl font-bold text-slate-800">物件開発管理</h2>
-                        <p class="text-xs sm:text-sm text-slate-500">仕入れ・開発候補地の追跡・交渉状況および案件昇格</p>
+                        <p class="text-xs sm:text-sm text-slate-500">仕入れ・開発候補地の追跡・交渉状況 (ソート: A ➔ B ➔ C ➔ 没)</p>
                     </div>
                     
                     <div class="flex flex-wrap items-center gap-2">
-                        <!-- ビュー切り替えボタン -->
                         <div class="bg-slate-100 p-1 rounded-xl flex items-center text-xs sm:text-sm">
                             <button onclick="setPropertyViewMode('table')" id="btn-prop-view-table" class="px-3 py-1.5 rounded-lg font-medium transition bg-white shadow-sm text-slate-800">
                                 <i class="fa-solid fa-list mr-1"></i>一覧
@@ -211,7 +276,6 @@
                     </div>
                 </div>
 
-                <!-- フィルター -->
                 <div class="bg-white p-3 sm:p-4 rounded-xl shadow-sm border border-slate-200 flex flex-wrap gap-2 sm:gap-4 items-center">
                     <div class="relative flex-1 min-w-[200px]">
                         <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
@@ -226,7 +290,6 @@
                     </select>
                 </div>
 
-                <!-- テーブル表示領域 -->
                 <div id="prop-container-table" class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
                     <div class="overflow-x-auto">
                         <table class="w-full text-left border-collapse min-w-[800px]">
@@ -237,20 +300,17 @@
                                     <th class="p-3 sm:p-4 text-center">ランク</th>
                                     <th class="p-3 sm:p-4">地主名</th>
                                     <th class="p-3 sm:p-4 text-center">承諾</th>
-                                    <th class="p-3 sm:p-4 text-center">ステータス</th>
-                                    <th class="p-3 sm:p-4 text-right">操作 / 昇格</th>
+                                    <th class="p-3 sm:p-4">関連工事案件</th>
+                                    <th class="p-3 sm:p-4 text-right">操作</th>
                                 </tr>
                             </thead>
                             <tbody id="prop-table-body" class="divide-y divide-slate-100 text-xs sm:text-sm">
-                                <!-- JSでレンダリング -->
                             </tbody>
                         </table>
                     </div>
                 </div>
 
-                <!-- カンバン表示領域 -->
                 <div id="prop-container-kanban" class="hidden grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <!-- JSでランク別（A, B, C, 没）カード群を生成 -->
                 </div>
             </section>
 
@@ -259,11 +319,10 @@
                 <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-slate-200">
                     <div>
                         <h2 class="text-xl sm:text-2xl font-bold text-slate-800">案件進捗管理</h2>
-                        <p class="text-xs sm:text-sm text-slate-500">施工・受注工事案件の一元管理と物件連携</p>
+                        <p class="text-xs sm:text-sm text-slate-500">施工・受注工事案件の一元管理と紐付け (ソート: A ➔ B ➔ C ➔ 没)</p>
                     </div>
 
                     <div class="flex flex-wrap items-center gap-2">
-                        <!-- ビュー切り替えボタン -->
                         <div class="bg-slate-100 p-1 rounded-xl flex items-center text-xs sm:text-sm">
                             <button onclick="setProjectViewMode('table')" id="btn-proj-view-table" class="px-3 py-1.5 rounded-lg font-medium transition bg-white shadow-sm text-slate-800">
                                 <i class="fa-solid fa-list mr-1"></i>一覧
@@ -280,7 +339,6 @@
                     </div>
                 </div>
 
-                <!-- フィルター -->
                 <div class="bg-white p-3 sm:p-4 rounded-xl shadow-sm border border-slate-200 flex flex-wrap gap-2 sm:gap-4 items-center">
                     <div class="relative flex-1 min-w-[200px]">
                         <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
@@ -295,10 +353,9 @@
                     </select>
                 </div>
 
-                <!-- テーブル表示領域 -->
                 <div id="proj-container-table" class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
                     <div class="overflow-x-auto">
-                        <table class="w-full text-left border-collapse min-w-[850px]">
+                        <table class="w-full text-left border-collapse min-w-[900px]">
                             <thead>
                                 <tr class="bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-500 uppercase tracking-wider">
                                     <th class="p-3 sm:p-4">工事案件名 / 発注者</th>
@@ -306,20 +363,17 @@
                                     <th class="p-3 sm:p-4">紐付け物件</th>
                                     <th class="p-3 sm:p-4 text-right">受注金額</th>
                                     <th class="p-3 sm:p-4 text-center">粗利率</th>
-                                    <th class="p-3 sm:p-4">契約状況 / 契約日</th>
+                                    <th class="p-3 sm:p-4">契約日・工期</th>
                                     <th class="p-3 sm:p-4 text-right">操作</th>
                                 </tr>
                             </thead>
                             <tbody id="proj-table-body" class="divide-y divide-slate-100 text-xs sm:text-sm">
-                                <!-- JSでレンダリング -->
                             </tbody>
                         </table>
                     </div>
                 </div>
 
-                <!-- カンバン表示領域 -->
                 <div id="proj-container-kanban" class="hidden grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <!-- JSでランク別（A, B, C, 没）カード群を生成 -->
                 </div>
             </section>
 
@@ -328,7 +382,7 @@
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-slate-200">
                     <div>
                         <h2 class="text-xl sm:text-2xl font-bold text-slate-800">物件＆案件 マップ</h2>
-                        <p class="text-xs sm:text-sm text-slate-500">位置情報の視覚的把握（※案件化された物件は星マークの進捗案件ピンに統一表示されます）</p>
+                        <p class="text-xs sm:text-sm text-slate-500">位置情報の視覚的把握とドラッグによる位置精度の補正 (昇格済物件は案件ピンのみ表示)</p>
                     </div>
                     <div class="flex flex-wrap items-center gap-3 text-xs sm:text-sm">
                         <span class="inline-flex items-center space-x-1.5 px-3 py-1.5 bg-blue-50 text-blue-700 rounded-full font-semibold border border-blue-200">
@@ -350,6 +404,82 @@
         </main>
     </div>
 
+    <!-- 年間・四半期 目標設定 モーダル -->
+    <div id="target-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-2 sm:p-4 hidden">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg p-5 sm:p-6 space-y-5">
+            <div class="flex items-center justify-between border-b pb-3">
+                <h3 class="text-base sm:text-lg font-bold text-slate-800 flex items-center gap-2">
+                    <i class="fa-solid fa-sliders text-indigo-600"></i>
+                    <span>年間・四半期 目標金額の設定</span>
+                </h3>
+                <button onclick="closeTargetModal()" class="text-slate-400 hover:text-slate-600 p-1 rounded">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <form onsubmit="saveTargetSettings(event)" class="space-y-4 text-xs sm:text-sm">
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">今期 年間目標金額 (円) <span class="text-rose-500">*</span></label>
+                    <input type="number" id="target-annual-input" required min="0" step="10000" oninput="updateTargetPreview()" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl font-extrabold text-slate-800 text-base focus:ring-2 focus:ring-indigo-500">
+                </div>
+
+                <div class="border-t pt-3 space-y-3">
+                    <div class="flex items-center justify-between">
+                        <label class="font-bold text-slate-700">四半期ごとの予算割合 (%)</label>
+                        <span id="target-total-percent" class="text-xs font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800">合計: 100%</span>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="bg-slate-50 p-2.5 rounded-xl border border-slate-200 space-y-1">
+                            <span class="font-semibold text-slate-600 text-xs">Q1 (4月〜6月)</span>
+                            <div class="flex items-center space-x-1">
+                                <input type="number" id="target-q1-pct" min="0" max="100" oninput="updateTargetPreview()" class="w-full p-1.5 bg-white border border-slate-300 rounded text-center font-bold">
+                                <span>%</span>
+                            </div>
+                            <div class="text-[11px] text-indigo-600 font-semibold text-right" id="prev-q1-val">¥0</div>
+                        </div>
+
+                        <div class="bg-slate-50 p-2.5 rounded-xl border border-slate-200 space-y-1">
+                            <span class="font-semibold text-slate-600 text-xs">Q2 (7月〜9月)</span>
+                            <div class="flex items-center space-x-1">
+                                <input type="number" id="target-q2-pct" min="0" max="100" oninput="updateTargetPreview()" class="w-full p-1.5 bg-white border border-slate-300 rounded text-center font-bold">
+                                <span>%</span>
+                            </div>
+                            <div class="text-[11px] text-indigo-600 font-semibold text-right" id="prev-q2-val">¥0</div>
+                        </div>
+
+                        <div class="bg-slate-50 p-2.5 rounded-xl border border-slate-200 space-y-1">
+                            <span class="font-semibold text-slate-600 text-xs">Q3 (10月〜12月)</span>
+                            <div class="flex items-center space-x-1">
+                                <input type="number" id="target-q3-pct" min="0" max="100" oninput="updateTargetPreview()" class="w-full p-1.5 bg-white border border-slate-300 rounded text-center font-bold">
+                                <span>%</span>
+                            </div>
+                            <div class="text-[11px] text-indigo-600 font-semibold text-right" id="prev-q3-val">¥0</div>
+                        </div>
+
+                        <div class="bg-slate-50 p-2.5 rounded-xl border border-slate-200 space-y-1">
+                            <span class="font-semibold text-slate-600 text-xs">Q4 (1月〜3月)</span>
+                            <div class="flex items-center space-x-1">
+                                <input type="number" id="target-q4-pct" min="0" max="100" oninput="updateTargetPreview()" class="w-full p-1.5 bg-white border border-slate-300 rounded text-center font-bold">
+                                <span>%</span>
+                            </div>
+                            <div class="text-[11px] text-indigo-600 font-semibold text-right" id="prev-q4-val">¥0</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="pt-3 border-t flex items-center justify-end space-x-3">
+                    <button type="button" onclick="closeTargetModal()" class="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl font-semibold">
+                        キャンセル
+                    </button>
+                    <button type="submit" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-semibold shadow-md">
+                        設定を保存
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- 物件 直接編集・入力 モーダル -->
     <div id="property-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-2 sm:p-4 hidden">
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[92vh] flex flex-col overflow-hidden">
@@ -367,16 +497,6 @@
             <form id="property-form" onsubmit="saveProperty(event)" class="p-4 sm:p-6 overflow-y-auto space-y-6 flex-1 text-xs sm:text-sm">
                 <input type="hidden" id="pf-id">
 
-                <!-- 案件化(昇格) バナー -->
-                <div id="pf-promoted-banner" class="hidden bg-gradient-to-r from-emerald-500 to-teal-600 text-white p-3 rounded-xl shadow-sm flex items-center justify-between">
-                    <div class="flex items-center space-x-2">
-                        <i class="fa-solid fa-circle-check text-lg"></i>
-                        <span class="font-bold">この物件は工事案件へ昇格（案件化）されています</span>
-                    </div>
-                    <span class="text-xs bg-white/20 px-2 py-1 rounded">マップ表示: 案件ピン(星)へ移行済</span>
-                </div>
-
-                <!-- 基本情報 -->
                 <div>
                     <h4 class="text-sm sm:text-base font-bold text-slate-800 border-b pb-2 mb-4 flex items-center gap-2">
                         <i class="fa-solid fa-info-circle text-indigo-500"></i> 基本情報
@@ -396,7 +516,6 @@
                             </select>
                         </div>
 
-                        <!-- 没理由 (Rank没時のみ表示) -->
                         <div id="pf-reason-box" class="sm:col-span-3 hidden bg-rose-50 p-3 rounded-xl border border-rose-200">
                             <label class="block font-semibold text-rose-800 mb-1">没理由 <span class="text-rose-500">*</span></label>
                             <input type="text" id="pf-reason" placeholder="没になった理由や背景を入力してください" class="w-full p-2.5 bg-white border border-rose-300 rounded-lg focus:ring-2 focus:ring-rose-500 text-slate-800">
@@ -454,9 +573,7 @@
                             <span>履歴追加</span>
                         </button>
                     </div>
-                    <div id="pf-visits-container" class="space-y-2">
-                        <!-- JSで動的生成 -->
-                    </div>
+                    <div id="pf-visits-container" class="space-y-2"></div>
                 </div>
 
                 <!-- 出店検討テナント意向 -->
@@ -470,9 +587,7 @@
                             <span>テナント追加</span>
                         </button>
                     </div>
-                    <div id="pf-tenants-container" class="space-y-2">
-                        <!-- JSで動的生成 -->
-                    </div>
+                    <div id="pf-tenants-container" class="space-y-2"></div>
                 </div>
 
                 <!-- この物件に紐づく工事案件 -->
@@ -480,25 +595,18 @@
                     <h4 class="text-sm sm:text-base font-bold text-slate-800 border-b pb-2 mb-3 flex items-center gap-2">
                         <i class="fa-solid fa-helmet-safety text-emerald-500"></i> 紐づく工事案件
                     </h4>
-                    <div id="pf-linked-projects-list" class="space-y-2">
-                        <!-- JSでリスト生成 -->
-                    </div>
+                    <div id="pf-linked-projects-list" class="space-y-2"></div>
                 </div>
             </form>
 
-            <div class="p-4 border-t border-slate-200 flex flex-wrap items-center justify-between gap-3 bg-slate-50 shrink-0">
-                <div class="flex items-center space-x-2">
+            <div class="p-4 border-t border-slate-200 flex items-center justify-between bg-slate-50 shrink-0">
+                <button type="button" onclick="promotePropertyToProject()" id="btn-prop-promote" class="px-3.5 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 text-white hover:from-emerald-700 hover:to-teal-700 rounded-xl text-xs sm:text-sm font-semibold shadow transition">
+                    <i class="fa-solid fa-rocket mr-1"></i> 案件へ昇格 (案件化)
+                </button>
+                <div class="flex items-center space-x-2 ml-auto">
                     <button type="button" onclick="deletePropertyFromForm()" id="btn-prop-delete" class="px-3 py-2 bg-rose-50 text-rose-600 hover:bg-rose-100 rounded-xl text-xs sm:text-sm font-semibold transition hidden">
                         <i class="fa-solid fa-trash mr-1"></i>削除
                     </button>
-                    <!-- 昇格(案件化)ボタン -->
-                    <button type="button" onclick="promoteCurrentPropertyToProject()" id="btn-prop-promote" class="px-4 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-xl text-xs sm:text-sm font-bold shadow-md transition flex items-center space-x-1.5 hidden">
-                        <i class="fa-solid fa-rocket"></i>
-                        <span>案件進捗へ昇格（案件化）</span>
-                    </button>
-                </div>
-                
-                <div class="flex items-center space-x-3 ml-auto">
                     <button type="button" onclick="closePropertyModal()" class="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl text-xs sm:text-sm font-semibold transition">
                         キャンセル
                     </button>
@@ -508,6 +616,20 @@
                 </div>
             </div>
 
+        </div>
+    </div>
+
+    <!-- 既存案件から選択して紐付け モーダル -->
+    <div id="select-existing-project-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-2 sm:p-4 hidden">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg p-5 space-y-4">
+            <div class="flex items-center justify-between border-b pb-3">
+                <h3 class="font-bold text-slate-800 text-base">既存の工事案件から選択して紐付け</h3>
+                <button onclick="closeSelectExistingProjectModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <div id="existing-projects-selectable-list" class="space-y-2 max-h-80 overflow-y-auto pr-1"></div>
+            <div class="text-right pt-2 border-t">
+                <button onclick="closeSelectExistingProjectModal()" class="px-4 py-2 bg-slate-200 hover:bg-slate-300 rounded-lg text-xs font-semibold">閉じる</button>
+            </div>
         </div>
     </div>
 
@@ -525,7 +647,7 @@
                 </button>
             </div>
 
-            <form id="project-form" onsubmit="saveProject(event)" class="p-4 sm:p-6 overflow-y-auto space-y-4 flex-1 text-xs sm:text-sm">
+            <form id="project-form" onsubmit="saveProject(event)" class="p-4 sm:p-6 overflow-y-auto space-y-5 flex-1 text-xs sm:text-sm">
                 <input type="hidden" id="pjf-id">
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
@@ -537,7 +659,6 @@
                     <div>
                         <label class="block font-semibold text-slate-700 mb-1">紐付ける開発物件</label>
                         <select id="pjf-propertyId" onchange="onProjectPropertyChange()" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500">
-                            <!-- JSで物件ドロップダウン生成 -->
                         </select>
                     </div>
 
@@ -551,7 +672,6 @@
                         </select>
                     </div>
 
-                    <!-- 没理由 (Rank没時のみ表示) -->
                     <div id="pjf-reason-box" class="sm:col-span-2 hidden bg-rose-50 p-3 rounded-xl border border-rose-200">
                         <label class="block font-semibold text-rose-800 mb-1">没理由 <span class="text-rose-500">*</span></label>
                         <input type="text" id="pjf-reason" placeholder="没になった理由や背景を入力してください" class="w-full p-2.5 bg-white border border-rose-300 rounded-lg focus:ring-2 focus:ring-rose-500 text-slate-800">
@@ -618,27 +738,20 @@
                         <label class="block font-semibold text-slate-700 mb-1">施工場所住所</label>
                         <input type="text" id="pjf-address" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500">
                     </div>
-
-                    <div class="sm:col-span-2">
-                        <label class="block font-semibold text-slate-700 mb-1">備考・メモ</label>
-                        <textarea id="pjf-notes" rows="3" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"></textarea>
-                    </div>
                 </div>
 
-                <!-- 進捗履歴 (物件開発から引き継ぎ・編集対応) -->
+                <!-- 進捗履歴 (物件から継承・追加編集可能) -->
                 <div>
                     <div class="flex items-center justify-between border-b pb-2 mb-3">
                         <h4 class="text-sm sm:text-base font-bold text-slate-800 flex items-center gap-2">
-                            <i class="fa-solid fa-comments text-blue-500"></i> 進捗履歴 (交信・交渉メモ)
+                            <i class="fa-solid fa-clock-rotate-left text-emerald-600"></i> 進捗履歴（現地訪問・交信・備考）
                         </h4>
-                        <button type="button" onclick="addProjectVisitRow()" class="px-3 py-1 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg text-xs font-semibold transition flex items-center space-x-1">
+                        <button type="button" onclick="addProjectProgressRow()" class="px-3 py-1 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 rounded-lg text-xs font-semibold transition flex items-center space-x-1">
                             <i class="fa-solid fa-plus"></i>
                             <span>履歴追加</span>
                         </button>
                     </div>
-                    <div id="pjf-visits-container" class="space-y-2">
-                        <!-- JSで動的生成 -->
-                    </div>
+                    <div id="pjf-progress-container" class="space-y-2"></div>
                 </div>
             </form>
 
@@ -659,7 +772,7 @@
         </div>
     </div>
 
-    <!-- データバックアップ・復元 モーダル -->
+    <!-- バックアップ/復元 モーダル -->
     <div id="backup-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-2 sm:p-4 hidden">
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg p-5 sm:p-6 space-y-5">
             <div class="flex items-center justify-between border-b pb-3">
@@ -673,22 +786,20 @@
             </div>
 
             <div class="space-y-4 text-xs sm:text-sm">
-                <!-- エクスポート -->
                 <div class="bg-indigo-50/70 p-4 rounded-xl border border-indigo-100 space-y-2">
                     <div class="font-bold text-indigo-900">1. データのエクスポート (保存)</div>
-                    <p class="text-xs text-indigo-700">現在の全データ（物件＋工事案件）を1つのJSON形式でダウンロード保存します。</p>
-                    <button onclick="exportFullData()" class="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg shadow-sm transition flex items-center justify-center space-x-2">
+                    <p class="text-xs text-indigo-700">現在の全データ（物件＋工事案件＋目標設定）をJSONファイルとして保存します。</p>
+                    <button onclick="exportFullData()" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg shadow-sm transition flex items-center justify-center space-x-2">
                         <i class="fa-solid fa-download"></i>
                         <span>統合JSONバックアップを出力</span>
                     </button>
                 </div>
 
-                <!-- インポート -->
                 <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2">
                     <div class="font-bold text-slate-800">2. データのインポート (復元)</div>
-                    <p class="text-xs text-slate-500">旧形式の各JSONファイル、または統合バックアップファイルを読み込んで復元します。</p>
+                    <p class="text-xs text-slate-500">バックアップJSONファイルを読み込んで取り込みます。</p>
                     <input type="file" id="import-file-input" accept=".json" class="hidden" onchange="handleFileImport(event)">
-                    <button onclick="document.getElementById('import-file-input').click()" class="w-full py-2 bg-slate-800 hover:bg-slate-900 text-white font-semibold rounded-lg transition flex items-center justify-center space-x-2">
+                    <button onclick="document.getElementById('import-file-input').click()" class="w-full py-2.5 bg-slate-800 hover:bg-slate-900 text-white font-semibold rounded-lg transition flex items-center justify-center space-x-2">
                         <i class="fa-solid fa-upload"></i>
                         <span>JSONファイルを選択して取り込む</span>
                     </button>
@@ -703,53 +814,18 @@
         </div>
     </div>
 
-    <!-- アプリケーション・ロジック JS -->
+    <!-- ポップアップ通知トースト -->
+    <div id="toast-notification" class="fixed bottom-5 right-5 bg-slate-900 text-white px-4 py-3 rounded-xl shadow-2xl z-50 flex items-center space-x-3 hidden transition-all transform translate-y-2">
+        <i class="fa-solid fa-circle-check text-emerald-400 text-lg"></i>
+        <span id="toast-message" class="text-xs sm:text-sm font-medium"></span>
+    </div>
+
+
+    <!-- アプリケーション JavaScript -->
     <script>
-        // 市町村・地域レベルの座標辞書 & ジオコーディング
-        const MUNICIPALITY_GEOCODE_MAP = {
-            "武蔵村山市": [35.7548, 139.3872],
-            "瑞穂町": [35.7725, 139.3556],
-            "昭島市": [35.7058, 139.3533],
-            "板橋区": [35.7368, 139.7042],
-            "佐野市": [36.3147, 139.5789],
-            "半田市": [34.8919, 136.9312],
-            "松戸市": [35.7877, 139.9038],
-            "船橋市": [35.6947, 140.0086],
-            "伊達市": [37.8182, 140.5631],
-            "郡山市": [37.3983, 140.3882],
-            "さいたま市": [35.8617, 139.6455],
-            "大宮区": [35.9082, 139.6012],
-            "松本市": [36.2380, 137.9720],
-            "新潟市": [37.9161, 139.0614],
-            "仙台市": [38.2682, 140.8694]
-        };
-
-        function getCoordinatesForAddress(address) {
-            if (!address) return null;
-            for (const [key, coords] of Object.entries(MUNICIPALITY_GEOCODE_MAP)) {
-                if (address.includes(key)) {
-                    return coords;
-                }
-            }
-            return null;
-        }
-
-        async function fetchGeocodeGSI(address) {
-            if (!address) return null;
-            try {
-                const res = await fetch(`https://msearch.gsi.go.jp/address-search-api/msearch?q=${encodeURIComponent(address)}`);
-                const data = await res.json();
-                if (data && data.length > 0 && data[0].geometry && data[0].geometry.coordinates) {
-                    const [lng, lat] = data[0].geometry.coordinates;
-                    return { lat, lng };
-                }
-            } catch (e) {
-                console.warn('Geocoding API error:', e);
-            }
-            return null;
-        }
-
-        // 初期データ
+        // ==========================================
+        // 1. 初期提供データ
+        // ==========================================
         const INITIAL_PROPERTIES = [
             {
                 "id": "prop-1782274707039",
@@ -764,7 +840,7 @@
                 "landowners": ["森谷末子"],
                 "mortgage": false,
                 "consent": "済",
-                "isPromoted": false,
+                "terms": "",
                 "visits": [
                     { "date": "2026-06-23", "detail": "森谷末子様、娘と立ち話したところ、弟が詳細分かっているとの事。" },
                     { "date": "2026-06-30", "detail": "面談が出来ないため、資さんうどんと、バーガーキングの複合案で提案書を置いてくる" },
@@ -777,7 +853,27 @@
                 ],
                 "lat": 35.749276,
                 "lng": 139.399048,
-                "createdAt": "2026-06-24T04:18:27.039Z"
+                "createdAt": "2026-06-24T04:18:27.039Z",
+                "promoted": false
+            },
+            {
+                "id": "prop-1782277721867",
+                "name": "新青梅街道沿いテス倉庫（解体予定）",
+                "type": "建て貸し",
+                "rank": "C",
+                "address": "東京都武蔵村山市三ツ木２－１８－１２",
+                "chiban": "18番12、18番11",
+                "area": 1322.11,
+                "zone": "一種住居",
+                "confirmDate": "2026-06-24",
+                "landowners": ["山崎康史"],
+                "consent": "済",
+                "visits": [{ "date": "2026-06-24", "detail": "物件基本情報を確認、推進プロセスを開始。" }],
+                "tenants": [{ "name": "モスバーガー", "feel": "B", "application": "未受領" }],
+                "lat": 35.756325,
+                "lng": 139.37238,
+                "createdAt": "2026-06-24T05:08:41.867Z",
+                "promoted": false
             },
             {
                 "id": "prop-1782292762867",
@@ -785,14 +881,10 @@
                 "type": "居抜き",
                 "rank": "A",
                 "address": "栃木県佐野市高荻町1341",
-                "chiban": "",
                 "area": null,
-                "zone": "",
-                "confirmDate": "2026-06-24",
+                "buildingArea": 410,
                 "landowners": ["株式会社フェドラ"],
-                "mortgage": false,
                 "consent": "済",
-                "isPromoted": true,
                 "visits": [
                     { "date": "2026-06-24", "detail": "すかいらーくより検討したい旨の連絡あり、7月1日にGLI樋口社長がフェドラと面談予定。" },
                     { "date": "2026-07-01", "detail": "GLI樋口社長がフェドラ社長と面談、バーガーキングと資さんうどんの複合提案で決定。" }
@@ -804,7 +896,7 @@
                 "lat": 36.29657,
                 "lng": 139.60517,
                 "createdAt": "2026-06-24T09:19:22.867Z",
-                "buildingArea": 410
+                "promoted": true
             }
         ];
 
@@ -815,47 +907,106 @@
                 "clientName": "株式会社すかいらーくホールディングス",
                 "projectName": "資さんうどんフェドラ佐野",
                 "sector": "飲食",
-                "workType": "新装工事",
                 "amount": 70000000,
                 "profitRate": 20,
                 "address": "栃木県佐野市高荻町1341",
-                "notes": "7月29日 現調 すかいらーく梅原さん、GLI樋口社長同行",
-                "rank": "C",
-                "contractDate": "2026-06-15",
-                "startDate": "2026-07-01",
-                "endDate": "2026-09-30",
-                "contractStatus": "未締結",
+                "rank": "A",
+                "contractStatus": "工事契約",
+                "contractDate": "2026-07-15",
+                "startDate": "2026-08-01",
+                "endDate": "2026-10-31",
                 "lat": 36.29657,
                 "lng": 139.60517,
-                "visits": [
+                "progressHistory": [
                     { "date": "2026-06-24", "detail": "すかいらーくより検討したい旨の連絡あり。" },
-                    { "date": "2026-07-01", "detail": "バーガーキングと資さんうどんの複合提案で決定。" }
+                    { "date": "2026-07-01", "detail": "フェドラ社長と面談、資さんうどんの複合提案で決定。" },
+                    { "date": "2026-07-29", "detail": "現調 すかいらーく梅原さん、GLI樋口社長同行" }
                 ]
             },
             {
-                "id": "p_1782121000008",
+                "id": "p_1783644040624",
+                "propertyId": "",
+                "clientName": "ジャクエツ",
+                "projectName": "二三ヶ丘幼稚園改修工事",
+                "sector": "幼保",
+                "amount": 50000000,
+                "profitRate": 20,
+                "address": "千葉県松戸市二ツ木１６９２",
+                "rank": "B",
+                "contractStatus": "設計契約",
+                "contractDate": "2026-07-01",
+                "startDate": "2026-08-15",
+                "endDate": "2026-11-15",
+                "lat": 35.81423,
+                "lng": 139.93245,
+                "progressHistory": [{ "date": "2026-07-10", "detail": "概算提出の調整中" }]
+            },
+            {
+                "id": "p_1782710827498",
                 "propertyId": "",
                 "clientName": "株式会社すかいらーくホールディングス",
-                "projectName": "ガスト新潟駅前",
+                "projectName": "くし葉イオンモール郡山",
                 "sector": "飲食",
-                "workType": "新装工事",
-                "amount": 63500000,
-                "profitRate": 17,
-                "address": "新潟県新潟市",
-                "notes": "分離発注により利益率改善。",
-                "rank": "A",
-                "contractDate": "2026-05-20",
-                "startDate": "2026-06-10",
-                "endDate": "2026-08-31",
-                "contractStatus": "設計施工契約",
-                "lat": 37.9161,
-                "lng": 139.0614
+                "amount": 40000000,
+                "profitRate": 15,
+                "address": "福島県伊達市",
+                "rank": "B",
+                "contractStatus": "未締結",
+                "contractDate": "2026-08-01",
+                "startDate": "2026-09-01",
+                "endDate": "2026-11-30",
+                "lat": 37.8182,
+                "lng": 140.5631,
+                "progressHistory": []
+            },
+            {
+                "id": "p_1782709692173",
+                "propertyId": "",
+                "clientName": "富士薬品",
+                "projectName": "セイムス三橋店新築工事",
+                "sector": "物販",
+                "amount": 200000000,
+                "profitRate": 20,
+                "address": "埼玉県さいたま市大宮区三橋４－１５０",
+                "rank": "C",
+                "contractStatus": "未締結",
+                "startDate": "2026-10-01",
+                "endDate": "2027-02-28",
+                "lat": 35.9082,
+                "lng": 139.6012,
+                "progressHistory": [{ "date": "2026-07-05", "detail": "７月上旬に役員会議予定" }]
             }
         ];
 
-        // 状態変数
+        // 辞書ベース市町村ジオコーディング
+        const MUNICIPALITY_GEOCODE_MAP = {
+            "武蔵村山市": [35.753, 139.388],
+            "佐野市": [36.314, 139.578],
+            "半田市": [34.892, 136.936],
+            "瑞穂町": [35.772, 139.355],
+            "昭島市": [35.706, 139.357],
+            "松戸市": [35.786, 139.903],
+            "伊達市": [37.818, 140.563],
+            "さいたま市": [35.861, 139.645],
+            "板橋区": [35.751, 139.708],
+            "松本市": [36.238, 137.972]
+        };
+
+        // デフォルト年間・四半期目標設定
+        const DEFAULT_TARGETS = {
+            annual: 500000000, // 5億円
+            q1Pct: 20,
+            q2Pct: 25,
+            q3Pct: 25,
+            q4Pct: 30
+        };
+
+        // ==========================================
+        // 2. アプリケーション状態変数
+        // ==========================================
         let properties = [];
         let projects = [];
+        let targetSettings = { ...DEFAULT_TARGETS };
         let currentTab = 'dashboard';
         let propertyViewMode = 'table';
         let projectViewMode = 'table';
@@ -864,30 +1015,24 @@
         let leafletMap = null;
         let mapMarkers = [];
 
-        // ソート優先度: A ➔ B ➔ C ➔ 没
-        function getRankWeight(rank) {
-            switch(rank) {
-                case 'A': return 1;
-                case 'B': return 2;
-                case 'C': return 3;
-                case '没': return 4;
-                default: return 5;
-            }
+        // ランク順定義
+        const RANK_ORDER = { 'A': 1, 'B': 2, 'C': 3, '没': 4 };
+
+        function sortItemsByRank(items) {
+            return [...items].sort((a, b) => (RANK_ORDER[a.rank] || 99) - (RANK_ORDER[b.rank] || 99));
         }
 
-        function sortByRank(a, b) {
-            return getRankWeight(a.rank) - getRankWeight(b.rank);
-        }
-
+        // ==========================================
+        // 3. データ保存・読込
+        // ==========================================
         function loadData() {
             const savedProps = localStorage.getItem('bukken_anken_properties');
             const savedProjs = localStorage.getItem('bukken_anken_projects');
+            const savedTargets = localStorage.getItem('bukken_anken_targets');
 
-            if (savedProps) properties = JSON.parse(savedProps);
-            else properties = [...INITIAL_PROPERTIES];
-
-            if (savedProjs) projects = JSON.parse(savedProjs);
-            else projects = [...INITIAL_ANKENS];
+            properties = savedProps ? JSON.parse(savedProps) : [...INITIAL_PROPERTIES];
+            projects = savedProjs ? JSON.parse(savedProjs) : [...INITIAL_ANKENS];
+            targetSettings = savedTargets ? JSON.parse(savedTargets) : { ...DEFAULT_TARGETS };
 
             saveData();
         }
@@ -895,8 +1040,19 @@
         function saveData() {
             localStorage.setItem('bukken_anken_properties', JSON.stringify(properties));
             localStorage.setItem('bukken_anken_projects', JSON.stringify(projects));
+            localStorage.setItem('bukken_anken_targets', JSON.stringify(targetSettings));
         }
 
+        function showToast(msg) {
+            const toast = document.getElementById('toast-notification');
+            document.getElementById('toast-message').textContent = msg;
+            toast.classList.remove('hidden');
+            setTimeout(() => toast.classList.add('hidden'), 3000);
+        }
+
+        // ==========================================
+        // 4. ナビゲーション & UI操作
+        // ==========================================
         function toggleMobileSidebar() {
             const sidebar = document.getElementById('sidebar');
             const backdrop = document.getElementById('sidebar-backdrop');
@@ -938,16 +1094,69 @@
             if (tabName === 'map') renderMap();
         }
 
+        // ==========================================
+        // 5. 目標設定モーダル機能
+        // ==========================================
+        function openTargetModal() {
+            document.getElementById('target-annual-input').value = targetSettings.annual;
+            document.getElementById('target-q1-pct').value = targetSettings.q1Pct;
+            document.getElementById('target-q2-pct').value = targetSettings.q2Pct;
+            document.getElementById('target-q3-pct').value = targetSettings.q3Pct;
+            document.getElementById('target-q4-pct').value = targetSettings.q4Pct;
+            updateTargetPreview();
+            document.getElementById('target-modal').classList.remove('hidden');
+        }
+
+        function closeTargetModal() {
+            document.getElementById('target-modal').classList.add('hidden');
+        }
+
+        function updateTargetPreview() {
+            const annual = parseFloat(document.getElementById('target-annual-input').value) || 0;
+            const q1Pct = parseFloat(document.getElementById('target-q1-pct').value) || 0;
+            const q2Pct = parseFloat(document.getElementById('target-q2-pct').value) || 0;
+            const q3Pct = parseFloat(document.getElementById('target-q3-pct').value) || 0;
+            const q4Pct = parseFloat(document.getElementById('target-q4-pct').value) || 0;
+
+            const totalPct = q1Pct + q2Pct + q3Pct + q4Pct;
+            const totalSpan = document.getElementById('target-total-percent');
+            totalSpan.textContent = `合計: ${totalPct}%`;
+            totalSpan.className = totalPct === 100 ? 'text-xs font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800' : 'text-xs font-bold px-2 py-0.5 rounded bg-rose-100 text-rose-800';
+
+            document.getElementById('prev-q1-val').textContent = `¥${Math.round(annual * (q1Pct / 100)).toLocaleString()}`;
+            document.getElementById('prev-q2-val').textContent = `¥${Math.round(annual * (q2Pct / 100)).toLocaleString()}`;
+            document.getElementById('prev-q3-val').textContent = `¥${Math.round(annual * (q3Pct / 100)).toLocaleString()}`;
+            document.getElementById('prev-q4-val').textContent = `¥${Math.round(annual * (q4Pct / 100)).toLocaleString()}`;
+        }
+
+        function saveTargetSettings(e) {
+            e.preventDefault();
+            targetSettings = {
+                annual: parseFloat(document.getElementById('target-annual-input').value) || 0,
+                q1Pct: parseFloat(document.getElementById('target-q1-pct').value) || 0,
+                q2Pct: parseFloat(document.getElementById('target-q2-pct').value) || 0,
+                q3Pct: parseFloat(document.getElementById('target-q3-pct').value) || 0,
+                q4Pct: parseFloat(document.getElementById('target-q4-pct').value) || 0
+            };
+            saveData();
+            closeTargetModal();
+            showToast('目標設定を更新しました');
+            renderDashboard();
+        }
+
+        // ==========================================
+        // 6. ダッシュボード レンダリング
+        // ==========================================
         function renderDashboard() {
-            const activeProps = properties.filter(p => p.rank !== '没' && !p.isPromoted);
+            const activeProps = properties.filter(p => p.rank !== '没');
             const activeProjs = projects.filter(p => p.rank !== '没');
 
+            // KPIデータ
             document.getElementById('kpi-prop-count').textContent = activeProps.length;
             const rankAProps = activeProps.filter(p => p.rank === 'A').length;
-            document.getElementById('kpi-prop-ranka').textContent = `A: ${rankAProps}件`;
+            document.getElementById('kpi-prop-ranka').textContent = `Rank A: ${rankAProps}件`;
 
             document.getElementById('kpi-proj-count').textContent = activeProjs.length;
-            
             const totalAmount = activeProjs.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
             document.getElementById('kpi-proj-amount').textContent = `¥${totalAmount.toLocaleString()}`;
 
@@ -956,12 +1165,60 @@
                 : 0;
             document.getElementById('kpi-proj-profit').textContent = `${avgProfit}%`;
 
+            // 四半期 (Q1:4-6, Q2:7-9, Q3:10-12, Q4:1-3) 実績集計
+            const qActuals = { Q1: 0, Q2: 0, Q3: 0, Q4: 0 };
+
+            activeProjs.forEach(p => {
+                const amt = Number(p.amount) || 0;
+                // 基準日: 引渡日 > 着工日 > 契約日
+                const refDateStr = p.endDate || p.startDate || p.contractDate;
+                if (refDateStr) {
+                    const month = new Date(refDateStr).getMonth() + 1; // 1〜12
+                    if (month >= 4 && month <= 6) qActuals.Q1 += amt;
+                    else if (month >= 7 && month <= 9) qActuals.Q2 += amt;
+                    else if (month >= 10 && month <= 12) qActuals.Q3 += amt;
+                    else qActuals.Q4 += amt; // 1, 2, 3月
+                } else {
+                    // 日付未設定の場合はQ1にカウント
+                    qActuals.Q1 += amt;
+                }
+            });
+
+            // 年間目標＆実績
+            const annualTarget = targetSettings.annual;
+            const totalActual = totalAmount;
+            const annualPercent = annualTarget > 0 ? Math.min(Math.round((totalActual / annualTarget) * 100), 999) : 0;
+
+            document.getElementById('dash-annual-target').textContent = `¥${annualTarget.toLocaleString()}`;
+            document.getElementById('dash-annual-actual').textContent = `¥${totalActual.toLocaleString()}`;
+            document.getElementById('dash-annual-percent-text').textContent = `${annualPercent}% 達成`;
+            document.getElementById('dash-annual-progress-bar').style.width = `${Math.min(annualPercent, 100)}%`;
+
+            // 四半期目標＆実績計算
+            const q1Target = Math.round(annualTarget * (targetSettings.q1Pct / 100));
+            const q2Target = Math.round(annualTarget * (targetSettings.q2Pct / 100));
+            const q3Target = Math.round(annualTarget * (targetSettings.q3Pct / 100));
+            const q4Target = Math.round(annualTarget * (targetSettings.q4Pct / 100));
+
+            const renderQCard = (qKey, targetVal, actualVal) => {
+                const pct = targetVal > 0 ? Math.round((actualVal / targetVal) * 100) : 0;
+                document.getElementById(`dash-${qKey.toLowerCase()}-target`).textContent = `¥${targetVal.toLocaleString()}`;
+                document.getElementById(`dash-${qKey.toLowerCase()}-actual`).textContent = `¥${actualVal.toLocaleString()}`;
+                document.getElementById(`dash-${qKey.toLowerCase()}-percent`).textContent = `${pct}%`;
+            };
+
+            renderQCard('Q1', q1Target, qActuals.Q1);
+            renderQCard('Q2', q2Target, qActuals.Q2);
+            renderQCard('Q3', q3Target, qActuals.Q3);
+            renderQCard('Q4', q4Target, qActuals.Q4);
+
+            // スケジュールガントチャート描画
             renderGanttChart();
 
-            // 最新物件活動 (A ➔ B ➔ C ➔ 没順にソート)
-            const sortedProps = [...properties].sort(sortByRank);
+            // 最新物件活動リスト (A ➔ B ➔ C ➔ 没 順)
+            const sortedProps = sortItemsByRank(properties);
             const dashRecentList = document.getElementById('dash-recent-properties');
-            dashRecentList.innerHTML = sortedProps.slice(0, 6).map(p => {
+            dashRecentList.innerHTML = sortedProps.slice(0, 5).map(p => {
                 const rankColor = p.rank === 'A' ? 'bg-rose-100 text-rose-700' : p.rank === 'B' ? 'bg-amber-100 text-amber-700' : p.rank === '没' ? 'bg-slate-200 text-slate-600' : 'bg-blue-100 text-blue-700';
                 return `
                     <div onclick="openPropertyModal('${p.id}')" class="p-3 bg-slate-50 hover:bg-slate-100 rounded-xl transition cursor-pointer flex items-center justify-between">
@@ -969,7 +1226,7 @@
                             <div class="font-bold text-slate-800 text-xs sm:text-sm flex items-center gap-2">
                                 <span class="px-2 py-0.5 rounded text-xs font-extrabold ${rankColor}">${p.rank}</span>
                                 <span>${escapeHtml(p.name)}</span>
-                                ${p.isPromoted ? `<span class="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-[10px] rounded-md font-bold"><i class="fa-solid fa-rocket mr-1"></i>案件化済</span>` : ''}
+                                ${p.promoted ? '<span class="text-[10px] bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded font-bold">案件化済</span>' : ''}
                             </div>
                             <div class="text-xs text-slate-500">${escapeHtml(p.address || '住所未登録')}</div>
                         </div>
@@ -981,100 +1238,86 @@
             renderSectorChart(activeProjs);
         }
 
+        // ガントチャート描画機能 (A, Bランク案件を着工日順)
         function renderGanttChart() {
             const container = document.getElementById('gantt-chart-container');
-            let abProjects = projects.filter(p => p.rank === 'A' || p.rank === 'B');
+            const abProjects = projects.filter(p => (p.rank === 'A' || p.rank === 'B') && p.startDate && p.endDate);
 
             if (abProjects.length === 0) {
-                container.innerHTML = `<div class="text-xs text-slate-400 py-4 text-center">現在、AまたはBランクの工事案件データが登録されていません。</div>`;
+                container.innerHTML = `<div class="p-4 text-center text-xs text-slate-400 bg-slate-50 rounded-xl">着工日・引渡日が設定されたA/Bランク案件はありません</div>`;
                 return;
             }
 
-            abProjects.sort((a, b) => {
-                if (!a.startDate) return 1;
-                if (!b.startDate) return -1;
-                return new Date(a.startDate) - new Date(b.startDate);
-            });
+            // 着工日昇順ソート
+            abProjects.sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
 
-            let minTimestamp = Infinity;
-            let maxTimestamp = -Infinity;
+            // 全体日付範囲計算
+            let minTime = Infinity;
+            let maxTime = -Infinity;
 
             abProjects.forEach(p => {
-                [p.contractDate, p.startDate, p.endDate].forEach(dStr => {
-                    if (dStr) {
-                        const t = new Date(dStr).getTime();
-                        if (!isNaN(t)) {
-                            if (t < minTimestamp) minTimestamp = t;
-                            if (t > maxTimestamp) maxTimestamp = t;
-                        }
-                    }
-                });
+                const s = new Date(p.startDate).getTime();
+                const e = new Date(p.endDate).getTime();
+                const c = p.contractDate ? new Date(p.contractDate).getTime() : s;
+                if (c < minTime) minTime = c;
+                if (s < minTime) minTime = s;
+                if (e > maxTime) maxTime = e;
             });
 
-            if (minTimestamp === Infinity || maxTimestamp === -Infinity || minTimestamp === maxTimestamp) {
-                minTimestamp = new Date('2026-05-01').getTime();
-                maxTimestamp = new Date('2026-12-31').getTime();
-            }
+            // マージン(前後1週間)
+            minTime -= 7 * 24 * 60 * 60 * 1000;
+            maxTime += 7 * 24 * 60 * 60 * 1000;
+            const totalDuration = maxTime - minTime;
 
-            const marginTime = 10 * 24 * 60 * 60 * 1000;
-            const startRange = minTimestamp - marginTime;
-            const totalDuration = (maxTimestamp + marginTime) - startRange;
+            container.innerHTML = `
+                <div class="space-y-3 min-w-[650px]">
+                    ${abProjects.map(p => {
+                        const sTime = new Date(p.startDate).getTime();
+                        const eTime = new Date(p.endDate).getTime();
+                        const cTime = p.contractDate ? new Date(p.contractDate).getTime() : null;
 
-            container.innerHTML = abProjects.map(p => {
-                const rankColor = p.rank === 'A' ? 'bg-rose-100 text-rose-700' : 'bg-amber-100 text-amber-700';
-                
-                let contractPosPct = null;
-                if (p.contractDate) {
-                    const ct = new Date(p.contractDate).getTime();
-                    if (!isNaN(ct)) contractPosPct = Math.max(0, Math.min(100, ((ct - startRange) / totalDuration) * 100));
-                }
+                        const leftPct = Math.max(0, ((sTime - minTime) / totalDuration) * 100);
+                        const widthPct = Math.min(100 - leftPct, Math.max(2, ((eTime - sTime) / totalDuration) * 100));
 
-                let startPosPct = 0;
-                let endPosPct = 0;
-                let hasPeriod = false;
-                let daysCount = 0;
+                        // 工期日数計算
+                        const daysDiff = Math.ceil((eTime - sTime) / (1000 * 60 * 60 * 24)) + 1;
 
-                if (p.startDate && p.endDate) {
-                    const st = new Date(p.startDate).getTime();
-                    const et = new Date(p.endDate).getTime();
-                    if (!isNaN(st) && !isNaN(et) && et >= st) {
-                        startPosPct = Math.max(0, Math.min(100, ((st - startRange) / totalDuration) * 100));
-                        endPosPct = Math.max(0, Math.min(100, ((et - startRange) / totalDuration) * 100));
-                        hasPeriod = true;
-                        daysCount = Math.round((et - st) / (1000 * 60 * 60 * 24)) + 1;
-                    }
-                }
+                        let contractMarkerLeft = null;
+                        if (cTime) {
+                            contractMarkerLeft = Math.max(0, Math.min(100, ((cTime - minTime) / totalDuration) * 100));
+                        }
 
-                const widthPct = Math.max(2, endPosPct - startPosPct);
+                        const rankBadge = p.rank === 'A' ? 'bg-rose-100 text-rose-700' : 'bg-amber-100 text-amber-700';
 
-                return `
-                    <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 hover:bg-slate-100 transition space-y-2 cursor-pointer" onclick="openProjectModal('${p.id}')">
-                        <div class="flex flex-col sm:flex-row sm:items-center justify-between text-xs gap-1">
-                            <div class="flex items-center space-x-2 font-bold text-slate-800 truncate">
-                                <span class="px-2 py-0.5 rounded text-[11px] font-extrabold ${rankColor}">${p.rank}</span>
-                                <span class="truncate">${escapeHtml(p.projectName)}</span>
-                            </div>
-                            <div class="text-[11px] text-slate-500 shrink-0">
-                                ${p.contractDate ? `<span class="text-blue-600 mr-2"><i class="fa-solid fa-file-signature"></i> 契約: ${p.contractDate}</span>` : ''}
-                                ${p.startDate && p.endDate ? `<span><i class="fa-solid fa-calendar-days"></i> 工期: ${p.startDate} 〜 ${p.endDate}</span>` : '<span class="text-slate-400">工期未設定</span>'}
-                            </div>
-                        </div>
-
-                        <div class="relative w-full h-6 bg-slate-200/80 rounded-lg overflow-hidden flex items-center">
-                            ${hasPeriod ? `
-                                <div class="absolute h-4 bg-emerald-500 rounded-md shadow-sm transition-all flex items-center justify-center text-[10px] text-white font-semibold px-1 truncate" style="left: ${startPosPct}%; width: ${widthPct}%;">
-                                    <span class="truncate">工期${daysCount}日</span>
+                        return `
+                            <div class="space-y-1">
+                                <div class="flex items-center justify-between text-xs">
+                                    <div class="font-bold text-slate-800 flex items-center space-x-2">
+                                        <span class="px-2 py-0.5 rounded text-[10px] font-black ${rankBadge}">${p.rank}</span>
+                                        <span>${escapeHtml(p.projectName)}</span>
+                                    </div>
+                                    <div class="text-slate-500 text-[11px]">
+                                        ${p.contractDate ? `契約: ${p.contractDate} | ` : ''}工期: ${p.startDate} 〜 ${p.endDate}
+                                    </div>
                                 </div>
-                            ` : ''}
+                                
+                                <div class="relative w-full h-8 bg-slate-100 rounded-lg overflow-hidden border border-slate-200">
+                                    ${contractMarkerLeft !== null ? `
+                                        <div class="absolute top-0 bottom-0 w-1 bg-amber-500 z-20" style="left: ${contractMarkerLeft}%" title="契約日: ${p.contractDate}">
+                                            <div class="absolute -top-1 -left-1.5 w-4 h-4 bg-amber-500 text-white rounded-full flex items-center justify-center text-[9px] font-bold shadow">契</div>
+                                        </div>
+                                    ` : ''}
 
-                            ${contractPosPct !== null ? `
-                                <div class="absolute w-3 h-3 bg-blue-600 rounded-full border-2 border-white shadow-md transform -translate-x-1/2 z-10" style="left: ${contractPosPct}%;" title="契約日: ${p.contractDate}">
+                                    <div class="absolute top-1 bottom-1 bg-emerald-500 text-white rounded-md text-[11px] font-bold flex items-center justify-center px-2 shadow-sm truncate z-10"
+                                         style="left: ${leftPct}%; width: ${widthPct}%;">
+                                        工期 ${daysDiff} 日
+                                    </div>
                                 </div>
-                            ` : ''}
-                        </div>
-                    </div>
-                `;
-            }).join('');
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            `;
         }
 
         function renderSectorChart(activeProjs) {
@@ -1093,7 +1336,7 @@
                     labels: Object.keys(sectorCounts),
                     datasets: [{
                         data: Object.values(sectorCounts),
-                        backgroundColor: ['#6366f1', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6', '#64748b']
+                        backgroundColor: ['#6366f1', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6', '#64748b', '#06b6d4']
                     }]
                 },
                 options: {
@@ -1104,6 +1347,9 @@
             });
         }
 
+        // ==========================================
+        // 7. 物件開発 描画・編集・昇格 (ソート順: A➔B➔C➔没)
+        // ==========================================
         function setPropertyViewMode(mode) {
             propertyViewMode = mode;
             document.getElementById('btn-prop-view-table').className = mode === 'table' ? 'px-3 py-1.5 rounded-lg font-medium transition bg-white shadow-sm text-slate-800' : 'px-3 py-1.5 rounded-lg font-medium transition text-slate-500 hover:text-slate-800';
@@ -1119,24 +1365,30 @@
             const search = document.getElementById('prop-search').value.toLowerCase();
             const rankFilter = document.getElementById('prop-rank-filter').value;
 
-            const filtered = properties.filter(p => {
+            // ランク別にソート
+            const sortedProperties = sortItemsByRank(properties);
+
+            const filtered = sortedProperties.filter(p => {
                 const matchSearch = p.name.toLowerCase().includes(search) || 
                                     (p.address && p.address.toLowerCase().includes(search)) ||
                                     (p.landowners && p.landowners.join('').toLowerCase().includes(search));
                 const matchRank = rankFilter === 'all' || p.rank === rankFilter;
                 return matchSearch && matchRank;
-            }).sort(sortByRank);
+            });
 
             if (propertyViewMode === 'table') {
                 const tbody = document.getElementById('prop-table-body');
                 tbody.innerHTML = filtered.map(p => {
+                    const linkedProjects = projects.filter(pj => pj.propertyId === p.id);
                     const rankClass = p.rank === 'A' ? 'bg-rose-100 text-rose-700' : p.rank === 'B' ? 'bg-amber-100 text-amber-700' : p.rank === '没' ? 'bg-slate-200 text-slate-600' : 'bg-blue-100 text-blue-700';
-                    const consentDisplay = (p.consent === '承諾済' || p.consent === '済') ? '済' : ((p.consent === '未承諾' || p.consent === '未') ? '未' : (p.consent || '-'));
 
                     return `
                         <tr class="hover:bg-slate-50/80 transition cursor-pointer" onclick="openPropertyModal('${p.id}')">
                             <td class="p-3 sm:p-4">
-                                <div class="font-bold text-slate-800">${escapeHtml(p.name)}</div>
+                                <div class="font-bold text-slate-800 flex items-center space-x-2">
+                                    <span>${escapeHtml(p.name)}</span>
+                                    ${p.promoted ? '<span class="px-1.5 py-0.5 bg-emerald-100 text-emerald-800 font-bold rounded text-[10px]">案件化済</span>' : ''}
+                                </div>
                                 <div class="text-xs text-slate-500 mt-0.5">${escapeHtml(p.address || '-')}</div>
                                 ${p.rank === '没' && p.reason ? `<div class="text-xs text-rose-600 mt-1">没理由: ${escapeHtml(p.reason)}</div>` : ''}
                             </td>
@@ -1146,21 +1398,16 @@
                             </td>
                             <td class="p-3 sm:p-4 text-slate-600">${escapeHtml((p.landowners || []).join(', ') || '-')}</td>
                             <td class="p-3 sm:p-4 text-center">
-                                <span class="px-2 py-0.5 rounded text-xs ${consentDisplay === '済' ? 'bg-emerald-50 text-emerald-700 font-semibold' : 'bg-slate-100 text-slate-600'}">${escapeHtml(consentDisplay)}</span>
+                                <span class="px-2 py-0.5 rounded text-xs font-bold ${p.consent === '済' ? 'bg-emerald-100 text-emerald-800' : p.consent === '未' ? 'bg-rose-100 text-rose-800' : 'bg-slate-100 text-slate-600'}">${escapeHtml(p.consent || '-')}</span>
                             </td>
-                            <td class="p-3 sm:p-4 text-center">
-                                ${p.isPromoted 
-                                    ? `<span class="px-2.5 py-1 bg-emerald-100 text-emerald-800 text-xs font-bold rounded-lg border border-emerald-200 inline-flex items-center space-x-1"><i class="fa-solid fa-rocket"></i><span>案件化済</span></span>` 
-                                    : `<span class="px-2.5 py-1 bg-slate-100 text-slate-600 text-xs rounded-lg">開発中</span>`}
+                            <td class="p-3 sm:p-4">
+                                <span class="text-xs font-semibold text-indigo-600">${linkedProjects.length}件の工事案件</span>
                             </td>
                             <td class="p-3 sm:p-4 text-right space-x-1" onclick="event.stopPropagation()">
-                                ${!p.isPromoted ? `
-                                    <button onclick="promotePropertyToProject('${p.id}')" class="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold shadow-sm transition inline-flex items-center space-x-1">
-                                        <i class="fa-solid fa-rocket"></i>
-                                        <span>昇格</span>
-                                    </button>
-                                ` : ''}
-                                <button onclick="openPropertyModal('${p.id}')" class="px-3 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 rounded-lg text-xs font-semibold transition">
+                                <button onclick="promoteProperty('${p.id}')" class="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-lg text-xs font-bold transition">
+                                    🚀 昇格
+                                </button>
+                                <button onclick="openPropertyModal('${p.id}')" class="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 rounded-lg text-xs font-semibold transition">
                                     編集
                                 </button>
                             </td>
@@ -1185,9 +1432,9 @@
                             <div class="space-y-2.5 flex-1 overflow-y-auto max-h-[600px] pr-0.5">
                                 ${rankProps.map(p => `
                                     <div onclick="openPropertyModal('${p.id}')" class="bg-white p-3.5 rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition cursor-pointer space-y-2">
-                                        <div class="flex items-start justify-between gap-1">
-                                            <div class="font-bold text-slate-800 text-xs sm:text-sm">${escapeHtml(p.name)}</div>
-                                            ${p.isPromoted ? `<span class="px-1.5 py-0.5 bg-emerald-100 text-emerald-700 text-[10px] font-bold rounded shrink-0">案件化済</span>` : ''}
+                                        <div class="font-bold text-slate-800 text-xs sm:text-sm flex items-center justify-between">
+                                            <span>${escapeHtml(p.name)}</span>
+                                            ${p.promoted ? '<span class="text-[9px] bg-emerald-100 text-emerald-800 px-1 py-0.5 rounded font-bold">案件化済</span>' : ''}
                                         </div>
                                         <div class="text-xs text-slate-500 line-clamp-2">${escapeHtml(p.address || '住所未設定')}</div>
                                         ${r === '没' && p.reason ? `<div class="p-2 bg-rose-50 text-rose-700 rounded-lg text-xs">理由: ${escapeHtml(p.reason)}</div>` : ''}
@@ -1204,38 +1451,36 @@
             }
         }
 
-        // 昇格 (案件化) ロジック
-        function promotePropertyToProject(propId) {
-            const prop = properties.find(p => p.id === propId);
-            if (!prop) return;
+        // 昇格（案件化）処理
+        function promoteProperty(propId) {
+            const p = properties.find(item => item.id === propId);
+            if (!p) return;
 
-            if (confirm(`「${prop.name}」を案件進捗管理へ「昇格（案件化）」しますか？\n\n・住所や位置情報、これまでの交信履歴をそのまま継承して新規工事案件を作成します。\n・この物件はマップ表示の青旗ピンから除外され、作成される案件ピン(星)へ集約されます。`)) {
-                prop.isPromoted = true;
-                saveData();
+            p.promoted = true;
+            saveData();
 
-                openProjectModal();
-                
-                document.getElementById('pjf-projectName').value = prop.name;
-                document.getElementById('pjf-propertyId').value = prop.id;
-                document.getElementById('pjf-address').value = prop.address || '';
-                document.getElementById('pjf-rank').value = prop.rank || 'A';
-                
-                // 現地訪問・交信履歴の進捗履歴への継承
-                const container = document.getElementById('pjf-visits-container');
-                container.innerHTML = '';
-                if (prop.visits && prop.visits.length > 0) {
-                    prop.visits.forEach(v => addProjectVisitRow(v.date, v.detail));
-                }
-                
-                showToast(`「${prop.name}」を案件へ昇格しました！案件情報を設定・保存してください。`);
-            }
+            openProjectModal();
+            document.getElementById('pjf-projectName').value = p.name;
+            document.getElementById('pjf-propertyId').value = p.id;
+            document.getElementById('pjf-address').value = p.address || '';
+            document.getElementById('pjf-rank').value = p.rank || 'A';
+
+            // 訪問履歴を引き継ぎ
+            const progressContainer = document.getElementById('pjf-progress-container');
+            progressContainer.innerHTML = '';
+            (p.visits || []).forEach(v => addProjectProgressRow(v.date, v.detail));
+
+            showToast('物件情報を引き継いで新規案件登録を開きました');
         }
 
-        function promoteCurrentPropertyToProject() {
+        function promotePropertyToProject() {
             const id = document.getElementById('pf-id').value;
-            if (!id) return;
-            closePropertyModal();
-            promotePropertyToProject(id);
+            if (id) {
+                closePropertyModal();
+                promoteProperty(id);
+            } else {
+                alert('先に物件を保存してください。');
+            }
         }
 
         function openPropertyModal(id = null) {
@@ -1245,13 +1490,7 @@
 
             document.getElementById('pf-visits-container').innerHTML = '';
             document.getElementById('pf-tenants-container').innerHTML = '';
-
-            const deleteBtn = document.getElementById('btn-prop-delete');
-            const promoteBtn = document.getElementById('btn-prop-promote');
-            const promotedBanner = document.getElementById('pf-promoted-banner');
-
-            deleteBtn.classList.toggle('hidden', !id);
-            promoteBtn.classList.toggle('hidden', !id);
+            document.getElementById('btn-prop-delete').classList.toggle('hidden', !id);
 
             if (id) {
                 const p = properties.find(item => item.id === id);
@@ -1263,24 +1502,13 @@
                 document.getElementById('pf-rank').value = p.rank || 'A';
                 document.getElementById('pf-reason').value = p.reason || '';
                 document.getElementById('pf-type').value = p.type || '';
-                
-                const consentVal = (p.consent === '承諾済' || p.consent === '済') ? '済' : ((p.consent === '未承諾' || p.consent === '未') ? '未' : (p.consent || '済'));
-                document.getElementById('pf-consent').value = consentVal;
-                
+                document.getElementById('pf-consent').value = p.consent || '済';
                 document.getElementById('pf-zone').value = p.zone || '';
                 document.getElementById('pf-address').value = p.address || '';
                 document.getElementById('pf-chiban').value = p.chiban || '';
                 document.getElementById('pf-area').value = p.area || '';
                 document.getElementById('pf-buildingArea').value = p.buildingArea || '';
                 document.getElementById('pf-landowners').value = (p.landowners || []).join(', ');
-
-                if (p.isPromoted) {
-                    promotedBanner.classList.remove('hidden');
-                    promoteBtn.classList.add('hidden');
-                } else {
-                    promotedBanner.classList.add('hidden');
-                    promoteBtn.classList.remove('hidden');
-                }
 
                 (p.visits || []).forEach(v => addVisitRow(v.date, v.detail));
                 (p.tenants || []).forEach(t => addTenantRow(t.name, t.feel, t.application));
@@ -1289,8 +1517,7 @@
             } else {
                 document.getElementById('prop-modal-title').textContent = '新規物件の追加';
                 document.getElementById('pf-id').value = '';
-                promotedBanner.classList.add('hidden');
-                promoteBtn.classList.add('hidden');
+                document.getElementById('pf-linked-projects-list').innerHTML = '<div class="text-xs text-slate-400 py-1">物件保存後に工事案件を紐付けできます</div>';
             }
 
             toggleReasonField('pf');
@@ -1323,26 +1550,8 @@
             div.className = 'flex items-center gap-2 bg-slate-50 p-2 rounded-xl border border-slate-200';
             div.innerHTML = `
                 <input type="date" value="${date}" class="v-date text-xs p-2 bg-white border border-slate-300 rounded-lg shrink-0">
-                <input type="text" value="${escapeHtml(detail)}" placeholder="面談・交渉内容を入力..." class="v-detail text-xs p-2 bg-white border border-slate-300 rounded-lg flex-1">
-                <button type="button" onclick="document.getElementById('${rowId}').remove()" class="text-rose-500 hover:text-rose-700 p-1.5 rounded">
-                    <i class="fa-solid fa-trash-can"></i>
-                </button>
-            `;
-            container.appendChild(div);
-        }
-
-        function addProjectVisitRow(date = '', detail = '') {
-            const container = document.getElementById('pjf-visits-container');
-            const rowId = 'pvisit-row-' + Date.now() + Math.random().toString(36).substring(2, 5);
-            const div = document.createElement('div');
-            div.id = rowId;
-            div.className = 'flex items-center gap-2 bg-slate-50 p-2 rounded-xl border border-slate-200';
-            div.innerHTML = `
-                <input type="date" value="${date}" class="pv-date text-xs p-2 bg-white border border-slate-300 rounded-lg shrink-0">
-                <input type="text" value="${escapeHtml(detail)}" placeholder="進捗・交信メモを入力..." class="pv-detail text-xs p-2 bg-white border border-slate-300 rounded-lg flex-1">
-                <button type="button" onclick="document.getElementById('${rowId}').remove()" class="text-rose-500 hover:text-rose-700 p-1.5 rounded">
-                    <i class="fa-solid fa-trash-can"></i>
-                </button>
+                <input type="text" value="${escapeHtml(detail)}" placeholder="面談・交信内容..." class="v-detail text-xs p-2 bg-white border border-slate-300 rounded-lg flex-1">
+                <button type="button" onclick="document.getElementById('${rowId}').remove()" class="text-rose-500 p-1.5"><i class="fa-solid fa-trash-can"></i></button>
             `;
             container.appendChild(div);
         }
@@ -1354,7 +1563,7 @@
             div.id = rowId;
             div.className = 'flex flex-wrap items-center gap-2 bg-slate-50 p-2 rounded-xl border border-slate-200';
             div.innerHTML = `
-                <input type="text" value="${escapeHtml(name)}" placeholder="テナント名" class="t-name text-xs p-2 bg-white border border-slate-300 rounded-lg flex-1 min-w-[140px]">
+                <input type="text" value="${escapeHtml(name)}" placeholder="テナント名" class="t-name text-xs p-2 bg-white border border-slate-300 rounded-lg flex-1 min-w-[130px]">
                 <select class="t-feel text-xs p-2 bg-white border border-slate-300 rounded-lg shrink-0">
                     <option value="A" ${feel === 'A' ? 'selected' : ''}>感度: A</option>
                     <option value="B" ${feel === 'B' ? 'selected' : ''}>感度: B</option>
@@ -1366,111 +1575,90 @@
                     <option value="未受領" ${application === '未受領' ? 'selected' : ''}>申込: 未受領</option>
                     <option value="検討中" ${application === '検討中' ? 'selected' : ''}>申込: 検討中</option>
                 </select>
-                <button type="button" onclick="document.getElementById('${rowId}').remove()" class="text-rose-500 hover:text-rose-700 p-1.5 rounded">
-                    <i class="fa-solid fa-trash-can"></i>
-                </button>
+                <button type="button" onclick="document.getElementById('${rowId}').remove()" class="text-rose-500 p-1.5"><i class="fa-solid fa-trash-can"></i></button>
             `;
             container.appendChild(div);
         }
 
         function renderLinkedProjectsInModal(propId) {
             const container = document.getElementById('pf-linked-projects-list');
-            const linked = projects.filter(pj => pj.propertyId === propId).sort(sortByRank);
+            const linked = projects.filter(pj => pj.propertyId === propId);
 
-            let html = '';
-            if (linked.length === 0) {
-                html += `<div class="text-xs text-slate-400 p-3 bg-slate-50 rounded-xl">現在、紐づいている工事案件はありません</div>`;
-            } else {
-                html += linked.map(pj => `
-                    <div class="p-2.5 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between gap-2">
-                        <div class="min-w-0 flex-1">
-                            <div class="font-bold text-slate-800 text-xs truncate">${escapeHtml(pj.projectName)} (${pj.rank})</div>
-                            <div class="text-[11px] text-slate-500 truncate">金額: ¥${(Number(pj.amount)||0).toLocaleString()} / 契約: ${escapeHtml(pj.contractStatus || '未締結')}</div>
-                        </div>
-                        <div class="flex items-center space-x-1 shrink-0">
-                            <button type="button" onclick="closePropertyModal(); openProjectModal('${pj.id}')" class="px-2 py-1 bg-white border border-slate-300 rounded text-xs font-semibold hover:bg-slate-100">
-                                編集
-                            </button>
-                            <button type="button" onclick="unlinkProjectFromProperty('${pj.id}', '${propId}')" class="px-2 py-1 bg-rose-50 text-rose-600 border border-rose-200 rounded text-xs font-semibold hover:bg-rose-100" title="紐付け解除">
-                                解除
-                            </button>
-                        </div>
+            let html = linked.map(pj => `
+                <div class="p-2.5 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between">
+                    <div>
+                        <div class="font-bold text-slate-800 text-xs">${escapeHtml(pj.projectName)}</div>
+                        <div class="text-[11px] text-slate-500">¥${(Number(pj.amount)||0).toLocaleString()} / ${escapeHtml(pj.contractStatus || '未締結')}</div>
                     </div>
-                `).join('');
-            }
+                    <div class="flex items-center space-x-1">
+                        <button type="button" onclick="unlinkProjectFromProperty('${pj.id}')" class="px-2 py-1 text-rose-600 bg-rose-50 rounded text-xs font-semibold">解除</button>
+                        <button type="button" onclick="closePropertyModal(); openProjectModal('${pj.id}')" class="px-2.5 py-1 bg-white border border-slate-300 rounded text-xs font-semibold">編集</button>
+                    </div>
+                </div>
+            `).join('');
 
             html += `
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
-                    <button type="button" onclick="showAttachProjectDropdown('${propId}')" class="py-2.5 px-3 bg-indigo-50 border border-indigo-200 text-indigo-700 hover:bg-indigo-100 rounded-xl text-xs font-semibold transition flex items-center justify-center space-x-1.5">
-                        <i class="fa-solid fa-link"></i>
-                        <span>既存案件から選択して紐付け</span>
+                <div class="flex items-center gap-2 mt-2">
+                    <button type="button" onclick="openSelectExistingProjectModal('${propId}')" class="flex-1 py-2 bg-indigo-50 border border-indigo-200 text-indigo-700 hover:bg-indigo-100 rounded-xl text-xs font-semibold transition">
+                        <i class="fa-solid fa-link mr-1"></i> 既存案件から選択
                     </button>
-                    <button type="button" onclick="openProjectModalForProp('${propId}')" class="py-2.5 px-3 bg-emerald-50 border border-emerald-200 text-emerald-700 hover:bg-emerald-100 rounded-xl text-xs font-semibold transition flex items-center justify-center space-x-1.5">
-                        <i class="fa-solid fa-plus"></i>
-                        <span>新規工事案件を作成して紐付け</span>
+                    <button type="button" onclick="openProjectModalForProp('${propId}')" class="flex-1 py-2 bg-emerald-50 border border-emerald-200 text-emerald-700 hover:bg-emerald-100 rounded-xl text-xs font-semibold transition">
+                        <i class="fa-solid fa-plus mr-1"></i> 新規案件を作成
                     </button>
-                </div>
-                <div id="attach-project-select-container" class="hidden mt-2 p-3 bg-indigo-50/70 rounded-xl border border-indigo-200 space-y-2">
-                    <label class="block font-semibold text-indigo-900 text-xs">紐付ける既存工事案件を選択:</label>
-                    <div class="flex gap-2">
-                        <select id="attach-project-select" class="flex-1 p-2 text-xs bg-white border border-indigo-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
-                        </select>
-                        <button type="button" onclick="confirmAttachProject('${propId}')" class="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg text-xs shrink-0 transition">
-                            決定
-                        </button>
-                    </div>
                 </div>
             `;
-
             container.innerHTML = html;
         }
 
-        function unlinkProjectFromProperty(projId, propId) {
-            const pj = projects.find(p => p.id === projId);
-            if (pj && confirm(`「${pj.projectName}」の物件紐付けを解除しますか？`)) {
+        function openSelectExistingProjectModal(propId) {
+            const list = document.getElementById('existing-projects-selectable-list');
+            const available = projects.filter(p => p.propertyId !== propId);
+
+            if (available.length === 0) {
+                list.innerHTML = `<div class="p-4 text-center text-xs text-slate-400">選択可能な工事案件がありません</div>`;
+            } else {
+                list.innerHTML = available.map(p => `
+                    <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between">
+                        <div>
+                            <div class="font-bold text-xs text-slate-800">${escapeHtml(p.projectName)}</div>
+                            <div class="text-[11px] text-slate-500">${escapeHtml(p.clientName || '発注者未設定')}</div>
+                        </div>
+                        <button type="button" onclick="linkProjectToProperty('${p.id}', '${propId}')" class="px-3 py-1 bg-indigo-600 text-white rounded text-xs font-semibold">
+                            紐付ける
+                        </button>
+                    </div>
+                `).join('');
+            }
+            document.getElementById('select-existing-project-modal').classList.remove('hidden');
+        }
+
+        function closeSelectExistingProjectModal() {
+            document.getElementById('select-existing-project-modal').classList.add('hidden');
+        }
+
+        function linkProjectToProperty(pjId, propId) {
+            const pj = projects.find(p => p.id === pjId);
+            const prop = properties.find(pr => pr.id === propId);
+            if (pj && prop) {
+                pj.propertyId = propId;
+                pj.address = prop.address || pj.address;
+                saveData();
+                closeSelectExistingProjectModal();
+                renderLinkedProjectsInModal(propId);
+                renderProjects();
+                showToast('工事案件を紐付けました');
+            }
+        }
+
+        function unlinkProjectFromProperty(pjId) {
+            const pj = projects.find(p => p.id === pjId);
+            if (pj) {
+                const currentPropId = pj.propertyId;
                 pj.propertyId = '';
                 saveData();
-                renderLinkedProjectsInModal(propId);
-                if (currentTab === 'project') renderProjects();
-                if (currentTab === 'dashboard') renderDashboard();
-            }
-        }
-
-        function showAttachProjectDropdown(propId) {
-            const container = document.getElementById('attach-project-select-container');
-            const select = document.getElementById('attach-project-select');
-            const unlinkedOrOther = projects.filter(pj => pj.propertyId !== propId).sort(sortByRank);
-
-            if (unlinkedOrOther.length === 0) {
-                alert('紐付け可能な既存工事案件がありません。');
-                return;
-            }
-
-            select.innerHTML = unlinkedOrOther.map(pj => {
-                const curProp = properties.find(p => p.id === pj.propertyId);
-                const linkedInfo = curProp ? ` (現在: ${curProp.name}に紐付け中)` : ' (未紐付け)';
-                return `<option value="${pj.id}">[ランク${pj.rank}] ${escapeHtml(pj.projectName)}${escapeHtml(linkedInfo)}</option>`;
-            }).join('');
-
-            container.classList.remove('hidden');
-        }
-
-        function confirmAttachProject(propId) {
-            const select = document.getElementById('attach-project-select');
-            const projId = select.value;
-            if (!projId) return;
-
-            const pj = projects.find(p => p.id === projId);
-            if (pj) {
-                pj.propertyId = propId;
-                const prop = properties.find(p => p.id === propId);
-                if (prop && prop.address && !pj.address) {
-                    pj.address = prop.address;
-                }
-                saveData();
-                renderLinkedProjectsInModal(propId);
-                if (currentTab === 'project') renderProjects();
-                if (currentTab === 'dashboard') renderDashboard();
+                renderLinkedProjectsInModal(currentPropId);
+                renderProjects();
+                showToast('紐付けを解除しました');
             }
         }
 
@@ -1478,28 +1666,16 @@
             e.preventDefault();
             const id = document.getElementById('pf-id').value;
 
-            const visitRows = document.querySelectorAll('#pf-visits-container > div');
-            const visits = Array.from(visitRows).map(row => ({
+            const visits = Array.from(document.querySelectorAll('#pf-visits-container > div')).map(row => ({
                 date: row.querySelector('.v-date').value,
                 detail: row.querySelector('.v-detail').value
             })).filter(v => v.detail.trim() !== '');
 
-            const tenantRows = document.querySelectorAll('#pf-tenants-container > div');
-            const tenants = Array.from(tenantRows).map(row => ({
+            const tenants = Array.from(document.querySelectorAll('#pf-tenants-container > div')).map(row => ({
                 name: row.querySelector('.t-name').value,
                 feel: row.querySelector('.t-feel').value,
                 application: row.querySelector('.t-app').value
             })).filter(t => t.name.trim() !== '');
-
-            const addressVal = document.getElementById('pf-address').value;
-            const existingProp = properties.find(p => p.id === id);
-            
-            let latVal = existingProp ? existingProp.lat : null;
-            let lngVal = existingProp ? existingProp.lng : null;
-            if (!latVal || !lngVal || (existingProp && existingProp.address !== addressVal)) {
-                const approx = getCoordinatesForAddress(addressVal);
-                if (approx) { latVal = approx[0]; lngVal = approx[1]; }
-            }
 
             const propData = {
                 id: id || ('prop-' + Date.now()),
@@ -1509,16 +1685,14 @@
                 type: document.getElementById('pf-type').value,
                 consent: document.getElementById('pf-consent').value,
                 zone: document.getElementById('pf-zone').value,
-                address: addressVal,
+                address: document.getElementById('pf-address').value,
                 chiban: document.getElementById('pf-chiban').value,
                 area: parseFloat(document.getElementById('pf-area').value) || null,
                 buildingArea: parseFloat(document.getElementById('pf-buildingArea').value) || null,
                 landowners: document.getElementById('pf-landowners').value.split(',').map(s => s.trim()).filter(Boolean),
                 visits: visits,
                 tenants: tenants,
-                lat: latVal,
-                lng: lngVal,
-                isPromoted: existingProp ? (existingProp.isPromoted || false) : false,
+                promoted: id ? (properties.find(p => p.id === id)?.promoted || false) : false,
                 createdAt: id ? (properties.find(p => p.id === id)?.createdAt || new Date().toISOString()) : new Date().toISOString()
             };
 
@@ -1533,25 +1707,25 @@
             closePropertyModal();
             renderProperties();
             if (currentTab === 'dashboard') renderDashboard();
+            showToast('物件情報を保存しました');
         }
 
         function deletePropertyFromForm() {
             const id = document.getElementById('pf-id').value;
             if (!id) return;
-            const prop = properties.find(p => p.id === id);
-            const name = prop ? prop.name : 'この物件';
-            if (confirm(`「${name}」を削除してもよろしいですか？（紐づく工事案件の紐付けは解除されます）`)) {
+            if (confirm('この物件データを削除してもよろしいですか？')) {
                 properties = properties.filter(p => p.id !== id);
-                projects.forEach(pj => {
-                    if (pj.propertyId === id) pj.propertyId = '';
-                });
+                projects.forEach(pj => { if (pj.propertyId === id) pj.propertyId = ''; });
                 saveData();
                 closePropertyModal();
                 renderProperties();
-                if (currentTab === 'dashboard') renderDashboard();
+                showToast('物件を削除しました');
             }
         }
 
+        // ==========================================
+        // 8. 案件進捗 描画・編集 (ソート順: A➔B➔C➔没)
+        // ==========================================
         function setProjectViewMode(mode) {
             projectViewMode = mode;
             document.getElementById('btn-proj-view-table').className = mode === 'table' ? 'px-3 py-1.5 rounded-lg font-medium transition bg-white shadow-sm text-slate-800' : 'px-3 py-1.5 rounded-lg font-medium transition text-slate-500 hover:text-slate-800';
@@ -1564,22 +1738,22 @@
         }
 
         function renderProjects() {
-            const searchInput = document.getElementById('proj-search');
-            const search = searchInput ? searchInput.value.toLowerCase() : '';
-            const rankFilterSelect = document.getElementById('proj-rank-filter');
-            const rankFilter = rankFilterSelect ? rankFilterSelect.value : 'all';
+            const search = document.getElementById('proj-search').value.toLowerCase();
+            const rankFilter = document.getElementById('proj-rank-filter').value;
 
-            const filtered = projects.filter(p => {
+            // ランク別ソート
+            const sortedProjects = sortItemsByRank(projects);
+
+            const filtered = sortedProjects.filter(p => {
                 const matchSearch = p.projectName.toLowerCase().includes(search) || 
                                     (p.clientName && p.clientName.toLowerCase().includes(search)) ||
                                     (p.address && p.address.toLowerCase().includes(search));
                 const matchRank = rankFilter === 'all' || p.rank === rankFilter;
                 return matchSearch && matchRank;
-            }).sort(sortByRank);
+            });
 
             if (projectViewMode === 'table') {
                 const tbody = document.getElementById('proj-table-body');
-                if (!tbody) return;
                 tbody.innerHTML = filtered.map(p => {
                     const linkedProp = properties.find(pr => pr.id === p.propertyId);
                     const rankClass = p.rank === 'A' ? 'bg-rose-100 text-rose-700' : p.rank === 'B' ? 'bg-amber-100 text-amber-700' : p.rank === '没' ? 'bg-slate-200 text-slate-600' : 'bg-blue-100 text-blue-700';
@@ -1603,9 +1777,9 @@
                             <td class="p-3 sm:p-4 text-center font-semibold text-emerald-600">
                                 ${p.profitRate || 0}%
                             </td>
-                            <td class="p-3 sm:p-4">
-                                <div class="font-semibold text-slate-700 text-xs">${escapeHtml(p.contractStatus || '未締結')}</div>
-                                ${p.contractDate ? `<div class="text-[11px] text-blue-600">契約: ${p.contractDate}</div>` : ''}
+                            <td class="p-3 sm:p-4 text-xs text-slate-600">
+                                <div>${p.contractDate ? `契約: ${p.contractDate}` : '契約: 未設定'}</div>
+                                <div class="text-[11px] text-slate-400">${p.startDate || '?'} 〜 ${p.endDate || '?'}</div>
                             </td>
                             <td class="p-3 sm:p-4 text-right" onclick="event.stopPropagation()">
                                 <button onclick="openProjectModal('${p.id}')" class="px-3 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-600 rounded-lg text-xs font-semibold transition">
@@ -1617,7 +1791,6 @@
                 }).join('');
             } else {
                 const kanbanContainer = document.getElementById('proj-container-kanban');
-                if (!kanbanContainer) return;
                 const ranks = ['A', 'B', 'C', '没'];
 
                 kanbanContainer.innerHTML = ranks.map(r => {
@@ -1653,18 +1826,15 @@
 
         function openProjectModalForProp(propId) {
             openProjectModal();
-            const select = document.getElementById('pjf-propertyId');
-            if (select) {
-                select.value = propId;
-                onProjectPropertyChange();
-            }
+            document.getElementById('pjf-propertyId').value = propId;
+            onProjectPropertyChange();
         }
 
         function onProjectPropertyChange() {
             const propId = document.getElementById('pjf-propertyId').value;
             if (propId) {
                 const prop = properties.find(p => p.id === propId);
-                if (prop && prop.address && !document.getElementById('pjf-address').value) {
+                if (prop && prop.address) {
                     document.getElementById('pjf-address').value = prop.address;
                 }
             }
@@ -1675,13 +1845,11 @@
             const form = document.getElementById('project-form');
             form.reset();
 
-            const visitsContainer = document.getElementById('pjf-visits-container');
-            if (visitsContainer) visitsContainer.innerHTML = '';
-
             const propSelect = document.getElementById('pjf-propertyId');
             propSelect.innerHTML = '<option value="">-- 物件に紐付けない --</option>' + 
                 properties.map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join('');
 
+            document.getElementById('pjf-progress-container').innerHTML = '';
             document.getElementById('btn-proj-delete').classList.toggle('hidden', !id);
 
             if (id) {
@@ -1703,10 +1871,8 @@
                 document.getElementById('pjf-startDate').value = p.startDate || '';
                 document.getElementById('pjf-endDate').value = p.endDate || '';
                 document.getElementById('pjf-address').value = p.address || '';
-                document.getElementById('pjf-notes').value = p.notes || '';
 
-                // 進捗履歴の表示
-                (p.visits || []).forEach(v => addProjectVisitRow(v.date, v.detail));
+                (p.progressHistory || []).forEach(v => addProjectProgressRow(v.date, v.detail));
             } else {
                 document.getElementById('proj-modal-title').textContent = '新規工事案件の追加';
                 document.getElementById('pjf-id').value = '';
@@ -1720,40 +1886,33 @@
             document.getElementById('project-modal').classList.add('hidden');
         }
 
+        function addProjectProgressRow(date = '', detail = '') {
+            const container = document.getElementById('pjf-progress-container');
+            const rowId = 'pjp-row-' + Date.now() + Math.random().toString(36).substring(2, 5);
+            const div = document.createElement('div');
+            div.id = rowId;
+            div.className = 'flex items-center gap-2 bg-slate-50 p-2 rounded-xl border border-slate-200';
+            div.innerHTML = `
+                <input type="date" value="${date}" class="pj-date text-xs p-2 bg-white border border-slate-300 rounded-lg shrink-0">
+                <input type="text" value="${escapeHtml(detail)}" placeholder="進捗・現地訪問・備考..." class="pj-detail text-xs p-2 bg-white border border-slate-300 rounded-lg flex-1">
+                <button type="button" onclick="document.getElementById('${rowId}').remove()" class="text-rose-500 p-1.5"><i class="fa-solid fa-trash-can"></i></button>
+            `;
+            container.appendChild(div);
+        }
+
         function saveProject(e) {
             e.preventDefault();
             const id = document.getElementById('pjf-id').value;
 
-            const visitRows = document.querySelectorAll('#pjf-visits-container > div');
-            const visits = Array.from(visitRows).map(row => ({
-                date: row.querySelector('.pv-date').value,
-                detail: row.querySelector('.pv-detail').value
+            const progressHistory = Array.from(document.querySelectorAll('#pjf-progress-container > div')).map(row => ({
+                date: row.querySelector('.pj-date').value,
+                detail: row.querySelector('.pj-detail').value
             })).filter(v => v.detail.trim() !== '');
-
-            const addressVal = document.getElementById('pjf-address').value;
-            const existingProj = projects.find(p => p.id === id);
-
-            let latVal = existingProj ? existingProj.lat : null;
-            let lngVal = existingProj ? existingProj.lng : null;
-            
-            const linkedPropId = document.getElementById('pjf-propertyId').value;
-            if (linkedPropId) {
-                const linkedProp = properties.find(p => p.id === linkedPropId);
-                if (linkedProp && linkedProp.lat && linkedProp.lng) {
-                    latVal = linkedProp.lat;
-                    lngVal = linkedProp.lng;
-                }
-            }
-
-            if (!latVal || !lngVal || (existingProj && existingProj.address !== addressVal)) {
-                const approx = getCoordinatesForAddress(addressVal);
-                if (approx) { latVal = approx[0]; lngVal = approx[1]; }
-            }
 
             const projData = {
                 id: id || ('p_' + Date.now()),
                 projectName: document.getElementById('pjf-projectName').value,
-                propertyId: linkedPropId,
+                propertyId: document.getElementById('pjf-propertyId').value,
                 rank: document.getElementById('pjf-rank').value,
                 reason: document.getElementById('pjf-rank').value === '没' ? document.getElementById('pjf-reason').value : '',
                 clientName: document.getElementById('pjf-clientName').value,
@@ -1764,11 +1923,8 @@
                 contractDate: document.getElementById('pjf-contractDate').value,
                 startDate: document.getElementById('pjf-startDate').value,
                 endDate: document.getElementById('pjf-endDate').value,
-                address: addressVal,
-                notes: document.getElementById('pjf-notes').value,
-                visits: visits,
-                lat: latVal,
-                lng: lngVal
+                address: document.getElementById('pjf-address').value,
+                progressHistory: progressHistory
             };
 
             if (id) {
@@ -1782,20 +1938,30 @@
             closeProjectModal();
             renderProjects();
             if (currentTab === 'dashboard') renderDashboard();
+            showToast('工事案件を保存しました');
         }
 
         function deleteProjectFromForm() {
             const id = document.getElementById('pjf-id').value;
             if (!id) return;
-            const pj = projects.find(p => p.id === id);
-            const name = pj ? pj.projectName : 'この案件';
-            if (confirm(`「${name}」を削除してもよろしいですか？`)) {
+            if (confirm('この工事案件データを削除してもよろしいですか？')) {
                 projects = projects.filter(p => p.id !== id);
                 saveData();
                 closeProjectModal();
                 renderProjects();
-                if (currentTab === 'dashboard') renderDashboard();
+                showToast('工事案件を削除しました');
             }
+        }
+
+        // ==========================================
+        // 9. マップ描画 (昇格済物件の非表示連動)
+        // ==========================================
+        function getCoordinatesForAddress(address) {
+            if (!address) return null;
+            for (const [key, coords] of Object.entries(MUNICIPALITY_GEOCODE_MAP)) {
+                if (address.includes(key)) return coords;
+            }
+            return null;
         }
 
         function renderMap() {
@@ -1803,7 +1969,7 @@
             if (!mapContainer) return;
 
             if (!leafletMap) {
-                leafletMap = L.map('map-container').setView([35.75, 139.40], 8);
+                leafletMap = L.map('map-container').setView([35.75, 139.40], 10);
                 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                     attribution: '&copy; OpenStreetMap contributors'
                 }).addTo(leafletMap);
@@ -1830,15 +1996,20 @@
 
             const bounds = [];
 
-            // 物件マーカー (案件化済みの物件は除外)
-            properties.filter(p => !p.isPromoted).forEach(p => {
+            // 昇格（案件化済）されていない物件のみフラグ表示
+            properties.filter(p => !p.promoted).forEach(p => {
                 let lat = p.lat;
                 let lng = p.lng;
 
                 if (!lat || !lng) {
-                    const approx = getCoordinatesForAddress(p.address);
-                    if (approx) { lat = approx[0]; lng = approx[1]; p.lat = lat; p.lng = lng; }
-                    else { lat = 35.6895; lng = 139.6917; }
+                    const matched = getCoordinatesForAddress(p.address);
+                    if (matched) {
+                        lat = matched[0] + (Math.random() * 0.01 - 0.005);
+                        lng = matched[1] + (Math.random() * 0.01 - 0.005);
+                    } else {
+                        lat = 35.70 + (Math.random() * 0.1 - 0.05);
+                        lng = 139.40 + (Math.random() * 0.1 - 0.05);
+                    }
                 }
 
                 const marker = L.marker([lat, lng], { icon: flagIcon, draggable: true }).addTo(leafletMap);
@@ -1848,33 +2019,35 @@
                     <div class="space-y-2 text-xs">
                         <div class="font-bold text-slate-800 text-sm">🚩 ${escapeHtml(p.name)}</div>
                         <div>種別: ${escapeHtml(p.type || '-')} / ランク: ${p.rank}</div>
-                        <div class="text-slate-500">${escapeHtml(p.address || '住所未登録')}</div>
-                        <div class="text-rose-600 font-semibold text-[10px]">※ドラッグでピンの位置を正確に移動保存できます</div>
-                        <div class="flex gap-1 mt-1">
-                            <button onclick="promotePropertyToProject('${p.id}')" class="flex-1 py-1 bg-emerald-600 text-white rounded font-bold">🚀 昇格</button>
-                            <button onclick="openPropertyModal('${p.id}')" class="flex-1 py-1 bg-indigo-600 text-white rounded font-semibold">詳細・編集</button>
-                        </div>
+                        <div class="text-slate-500">${escapeHtml(p.address || '')}</div>
+                        <button onclick="openPropertyModal('${p.id}')" class="w-full mt-1 py-1 bg-indigo-600 text-white rounded font-semibold">詳細・編集</button>
                     </div>
                 `);
 
                 marker.on('dragend', function(e) {
                     const pos = e.target.getLatLng();
-                    p.lat = pos.lat; p.lng = pos.lng;
+                    p.lat = pos.lat;
+                    p.lng = pos.lng;
                     saveData();
                 });
 
                 mapMarkers.push(marker);
             });
 
-            // 案件進捗マーカー (星ピン)
+            // 工事案件マーカー設置
             projects.forEach(pj => {
                 let lat = pj.lat;
                 let lng = pj.lng;
 
                 if (!lat || !lng) {
-                    const approx = getCoordinatesForAddress(pj.address);
-                    if (approx) { lat = approx[0]; lng = approx[1]; pj.lat = lat; pj.lng = lng; }
-                    else { lat = 35.75; lng = 139.45; }
+                    const matched = getCoordinatesForAddress(pj.address);
+                    if (matched) {
+                        lat = matched[0] + (Math.random() * 0.01 - 0.005);
+                        lng = matched[1] + (Math.random() * 0.01 - 0.005);
+                    } else {
+                        lat = 35.75 + (Math.random() * 0.1 - 0.05);
+                        lng = 139.45 + (Math.random() * 0.1 - 0.05);
+                    }
                 }
 
                 const marker = L.marker([lat, lng], { icon: starIcon, draggable: true }).addTo(leafletMap);
@@ -1884,7 +2057,6 @@
                     <div class="space-y-2 text-xs">
                         <div class="font-bold text-slate-800 text-sm">⭐ ${escapeHtml(pj.projectName)}</div>
                         <div>発注者: ${escapeHtml(pj.clientName || '-')}</div>
-                        <div class="text-slate-500">${escapeHtml(pj.address || '住所未登録')}</div>
                         <div class="font-extrabold text-slate-800">¥${(Number(pj.amount)||0).toLocaleString()}</div>
                         <button onclick="openProjectModal('${pj.id}')" class="w-full mt-1 py-1 bg-emerald-600 text-white rounded font-semibold">詳細・編集</button>
                     </div>
@@ -1892,7 +2064,8 @@
 
                 marker.on('dragend', function(e) {
                     const pos = e.target.getLatLng();
-                    pj.lat = pos.lat; pj.lng = pos.lng;
+                    pj.lat = pos.lat;
+                    pj.lng = pos.lng;
                     saveData();
                 });
 
@@ -1904,6 +2077,9 @@
             }
         }
 
+        // ==========================================
+        // 10. バックアップ / エクスポート / インポート
+        // ==========================================
         function openBackupModal() {
             document.getElementById('backup-modal').classList.remove('hidden');
         }
@@ -1913,53 +2089,38 @@
         }
 
         async function exportFullData() {
-            const jsonString = JSON.stringify({ properties, projects }, null, 2);
-            
-            if ('showSaveFilePicker' in window) {
-                try {
+            const exportObj = { properties, projects, targetSettings };
+            const jsonString = JSON.stringify(exportObj, null, 2);
+            const fileName = `物件・案件統合データ_${new Date().toISOString().slice(0,10)}.json`;
+
+            try {
+                if ('showSaveFilePicker' in window) {
                     const handle = await window.showSaveFilePicker({
-                        suggestedName: `物件・案件統合データ_${new Date().toISOString().slice(0, 10)}.json`,
-                        types: [{
-                            description: 'JSON Files',
-                            accept: { 'application/json': ['.json'] }
-                        }]
+                        suggestedName: fileName,
+                        types: [{ description: 'JSON File', accept: { 'application/json': ['.json'] } }]
                     });
                     const writable = await handle.createWritable();
                     await writable.write(jsonString);
                     await writable.close();
-                    showToast('ファイルを保存しました');
+                    showToast('選択した保存先にファイルを正常出力しました');
+                    closeBackupModal();
                     return;
-                } catch (err) {
-                    if (err.name === 'AbortError') return;
-                    console.warn('FilePicker fallback:', err);
                 }
+            } catch (err) {
+                if (err.name === 'AbortError') return;
             }
 
-            const blob = new Blob([jsonString], { type: 'application/json;charset=utf-8' });
-            const url = URL.createObjectURL ? URL.createObjectURL(blob) : window.webkitURL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = `物件・案件統合データ_${new Date().toISOString().slice(0, 10)}.json`;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            if (URL.revokeObjectURL) URL.revokeObjectURL(url);
-            showToast('ダウンロードへ保存しました');
-        }
-
-        function showToast(message) {
-            let toast = document.getElementById('app-toast');
-            if (!toast) {
-                toast = document.createElement('div');
-                toast.id = 'app-toast';
-                toast.className = 'fixed bottom-5 right-5 bg-slate-900 text-white text-xs px-4 py-3 rounded-xl shadow-2xl z-50 transition-opacity duration-300 opacity-0 pointer-events-none flex items-center space-x-2';
-                document.body.appendChild(toast);
-            }
-            toast.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-400"></i><span>${escapeHtml(message)}</span>`;
-            toast.classList.remove('opacity-0', 'pointer-events-none');
-            setTimeout(() => {
-                toast.classList.add('opacity-0', 'pointer-events-none');
-            }, 3000);
+            const blob = new Blob([jsonString], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = fileName;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showToast('ファイルをダウンロード保存しました');
+            closeBackupModal();
         }
 
         function handleFileImport(e) {
@@ -1971,20 +2132,16 @@
                 try {
                     const imported = JSON.parse(evt.target.result);
 
-                    if (imported.properties || imported.projects) {
-                        if (imported.properties) properties = imported.properties;
-                        if (imported.projects) projects = imported.projects;
-                    } else if (Array.isArray(imported)) {
-                        if (imported.length > 0 && imported[0].projectName) projects = imported;
-                        else if (imported.length > 0 && imported[0].name) properties = imported;
-                    }
+                    if (imported.properties) properties = imported.properties;
+                    if (imported.projects) projects = imported.projects;
+                    if (imported.targetSettings) targetSettings = imported.targetSettings;
 
                     saveData();
-                    alert('データを正常に取り込みました！');
+                    showToast('データを正常に取り込みました');
                     closeBackupModal();
                     switchTab(currentTab);
                 } catch (err) {
-                    alert('ファイルの解析に失敗しました。正しくないJSONフォーマットです。');
+                    alert('ファイルの解析に失敗しました。正しいJSONファイルを選択してください。');
                 }
             };
             reader.readAsText(file);
@@ -2000,7 +2157,9 @@
                 .replace(/'/g, '&#039;');
         }
 
-        // アプリ起動
+        // ==========================================
+        // 11. 初期化
+        // ==========================================
         window.onload = function() {
             loadData();
             switchTab('dashboard');
