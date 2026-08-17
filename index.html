@@ -196,25 +196,54 @@
 
                 <!-- KPIカード指標 -->
                 <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5">
-                    <div class="bg-white p-4 sm:p-5 rounded-2xl shadow-sm border border-slate-200">
+                    <div class="bg-white p-4 sm:p-5 rounded-2xl shadow-sm border border-slate-200 flex flex-col justify-between space-y-2">
                         <div class="text-xs sm:text-sm font-semibold text-slate-500">総物件開発数</div>
-                        <div class="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-2" id="kpi-prop-count">0</div>
-                        <div class="text-xs text-indigo-600 mt-1 font-medium" id="kpi-prop-ranka">Rank A: 0件</div>
+                        <div class="space-y-1">
+                            <div class="text-2xl sm:text-3xl font-black text-slate-900" id="kpi-prop-count">0</div>
+                            <div class="text-xs text-indigo-600 font-semibold" id="kpi-prop-ranka">Rank A: 0件 | Rank B: 0件</div>
+                        </div>
                     </div>
-                    <div class="bg-white p-4 sm:p-5 rounded-2xl shadow-sm border border-slate-200">
-                        <div class="text-xs sm:text-sm font-semibold text-slate-500">進行中工事案件</div>
-                        <div class="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-2" id="kpi-proj-count">0</div>
-                        <div class="text-xs text-emerald-600 mt-1 font-medium" id="kpi-proj-active">A/B: 0件 | C: 0件 | 完了: 0件</div>
+                    
+                    <div class="bg-white p-4 sm:p-5 rounded-2xl shadow-sm border border-slate-200 flex flex-col justify-between space-y-2">
+                        <div class="text-xs sm:text-sm font-semibold text-slate-500">進行中案件 (A・Bランク)</div>
+                        <div class="space-y-1">
+                            <div class="flex items-baseline justify-between">
+                                <span class="text-xs text-slate-500 font-semibold">件数</span>
+                                <span class="text-base sm:text-xl font-black text-emerald-600" id="kpi-ab-count">0件</span>
+                            </div>
+                            <div class="flex items-baseline justify-between border-t border-slate-100 pt-1">
+                                <span class="text-xs text-slate-500 font-semibold">受注総額</span>
+                                <span class="text-base sm:text-xl font-black text-slate-800 truncate" id="kpi-ab-amount">¥0</span>
+                            </div>
+                        </div>
                     </div>
-                    <div class="bg-white p-4 sm:p-5 rounded-2xl shadow-sm border border-slate-200">
-                        <div class="text-xs sm:text-sm font-semibold text-slate-500">受注実績累計 (A/B/完了)</div>
-                        <div class="text-lg sm:text-2xl font-extrabold text-slate-900 mt-2 truncate" id="kpi-proj-amount">¥0</div>
-                        <div class="text-xs text-amber-600 mt-1 font-semibold truncate" id="kpi-proj-amount-sub">見込み(C): ¥0</div>
+
+                    <div class="bg-white p-4 sm:p-5 rounded-2xl shadow-sm border border-slate-200 flex flex-col justify-between space-y-2">
+                        <div class="text-xs sm:text-sm font-semibold text-slate-500">見込み案件 (Cランク)</div>
+                        <div class="space-y-1">
+                            <div class="flex items-baseline justify-between">
+                                <span class="text-xs text-slate-500 font-semibold">件数</span>
+                                <span class="text-base sm:text-xl font-black text-amber-600" id="kpi-c-count">0件</span>
+                            </div>
+                            <div class="flex items-baseline justify-between border-t border-slate-100 pt-1">
+                                <span class="text-xs text-slate-500 font-semibold">見込み総額</span>
+                                <span class="text-base sm:text-xl font-black text-slate-800 truncate" id="kpi-c-amount">¥0</span>
+                            </div>
+                        </div>
                     </div>
-                    <div class="bg-white p-4 sm:p-5 rounded-2xl shadow-sm border border-slate-200">
-                        <div class="text-xs sm:text-sm font-semibold text-slate-500">平均想定粗利率</div>
-                        <div class="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-2" id="kpi-proj-profit">0%</div>
-                        <div class="text-xs text-amber-600 mt-1 font-medium">全進行案件平均</div>
+
+                    <div class="bg-white p-4 sm:p-5 rounded-2xl shadow-sm border border-slate-200 flex flex-col justify-between space-y-2">
+                        <div class="text-xs sm:text-sm font-semibold text-slate-500">1案件平均受注高 / 利益率</div>
+                        <div class="space-y-1">
+                            <div class="flex items-baseline justify-between">
+                                <span class="text-xs text-slate-500 font-semibold">平均受注高</span>
+                                <span class="text-base sm:text-xl font-black text-slate-900 truncate" id="kpi-avg-amount">¥0</span>
+                            </div>
+                            <div class="flex items-baseline justify-between border-t border-slate-100 pt-1">
+                                <span class="text-xs text-slate-500 font-semibold">平均利益率</span>
+                                <span class="text-base sm:text-xl font-black text-indigo-600" id="kpi-avg-profit">0%</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -773,6 +802,23 @@
                         <label class="block font-semibold text-slate-700 mb-1">施工場所住所</label>
                         <input type="text" id="pjf-address" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500">
                     </div>
+
+                    <!-- 💰 売上計上年月（分割計上設定） -->
+                    <div class="sm:col-span-2 bg-amber-50/60 p-3.5 rounded-xl border border-amber-200/80 space-y-2">
+                        <div class="flex items-center justify-between">
+                            <label class="font-bold text-slate-800 text-xs sm:text-sm flex items-center gap-1.5">
+                                <i class="fa-solid fa-coins text-amber-500"></i>
+                                <span>売上計上年月（分割計上設定）</span>
+                            </label>
+                            <button type="button" onclick="addSalesRecognitionRow()" class="px-3 py-1 bg-amber-100 hover:bg-amber-200 text-amber-800 rounded-lg text-xs font-bold transition flex items-center space-x-1">
+                                <i class="fa-solid fa-plus"></i>
+                                <span>計上年月を追加</span>
+                            </button>
+                        </div>
+                        <p class="text-[11px] text-slate-500">※売上を複数月に分割して計上する場合に設定します。ここで設定された年月・金額がダッシュボードの四半期売上実績に反映されます。</p>
+                        <div id="pjf-sales-container" class="space-y-2 pt-1"></div>
+                        <div class="text-right text-xs font-extrabold text-slate-700 pt-1" id="pjf-sales-total-hint">計上設定合計: ¥0</div>
+                    </div>
                 </div>
 
                 <!-- 進捗履歴 (物件から継承・追加編集可能) -->
@@ -949,7 +995,11 @@
                 "endDate": "2026-08-20",
                 "lat": 36.29657,
                 "lng": 139.60517,
-                "flagged": true, // 🚩期待できる案件デフォルトフラッグ
+                "flagged": true,
+                "salesRecognitions": [
+                    { "month": "2026-08", "amount": 35000000 },
+                    { "month": "2026-09", "amount": 35000000 }
+                ],
                 "progressHistory": [
                     { "date": "2026-06-24", "detail": "すかいらーくより検討したい旨の連絡あり。" },
                     { "date": "2026-07-01", "detail": "フェドラ社長と面談、資さんうどんの複合提案で決定。" },
@@ -1201,41 +1251,60 @@
             // 🚨 引渡2週間前アラートの集計と描画
             renderDeliveryAlerts(activeProjs);
 
-            const abProjects = activeProjs.filter(p => p.rank === 'A' || p.rank === 'B' || p.rank === '完了');
-            const cProjects = activeProjs.filter(p => p.rank === 'C');
-            const completedProjects = projects.filter(p => p.rank === '完了');
-
-            const abTotalAmount = abProjects.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
-            const cTotalAmount = cProjects.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
-
-            document.getElementById('kpi-prop-count').textContent = activeProps.length;
             const rankAProps = activeProps.filter(p => p.rank === 'A').length;
-            document.getElementById('kpi-prop-ranka').textContent = `Rank A: ${rankAProps}件`;
+            const rankBProps = activeProps.filter(p => p.rank === 'B').length;
 
-            document.getElementById('kpi-proj-count').textContent = activeProjs.length;
-            document.getElementById('kpi-proj-active').textContent = `A/B: ${activeProjs.filter(p => p.rank === 'A' || p.rank === 'B').length}件 | C: ${cProjects.length}件 | 完了: ${completedProjects.length}件`;
+            document.getElementById('kpi-prop-count').textContent = `${activeProps.length}件`;
+            document.getElementById('kpi-prop-ranka').textContent = `Rank A: ${rankAProps}件 | Rank B: ${rankBProps}件`;
 
-            document.getElementById('kpi-proj-amount').textContent = `¥${abTotalAmount.toLocaleString()}`;
-            document.getElementById('kpi-proj-amount-sub').textContent = `見込み(C): ¥${cTotalAmount.toLocaleString()}`;
+            const abActiveProjs = activeProjs.filter(p => p.rank === 'A' || p.rank === 'B');
+            const cProjs = activeProjs.filter(p => p.rank === 'C');
 
+            const abActiveAmount = abActiveProjs.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+            const cTotalAmount = cProjs.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+
+            document.getElementById('kpi-ab-count').textContent = `${abActiveProjs.length}件`;
+            document.getElementById('kpi-ab-amount').textContent = `¥${abActiveAmount.toLocaleString()}`;
+
+            document.getElementById('kpi-c-count').textContent = `${cProjs.length}件`;
+            document.getElementById('kpi-c-amount').textContent = `¥${cTotalAmount.toLocaleString()}`;
+
+            const totalProjAmount = activeProjs.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+            const avgAmount = activeProjs.length > 0 ? Math.round(totalProjAmount / activeProjs.length) : 0;
             const avgProfit = activeProjs.length > 0 
                 ? (activeProjs.reduce((sum, p) => sum + (Number(p.profitRate) || 0), 0) / activeProjs.length).toFixed(1)
                 : 0;
-            document.getElementById('kpi-proj-profit').textContent = `${avgProfit}%`;
+            document.getElementById('kpi-avg-amount').textContent = `¥${avgAmount.toLocaleString()}`;
+            document.getElementById('kpi-avg-profit').textContent = `${avgProfit}%`;
+
+            const abProjects = activeProjs.filter(p => p.rank === 'A' || p.rank === 'B' || p.rank === '完了');
+            const abTotalAmount = abProjects.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
 
             const qActuals = { Q1: 0, Q2: 0, Q3: 0, Q4: 0 };
 
             abProjects.forEach(p => {
-                const amt = Number(p.amount) || 0;
-                const refDateStr = p.endDate || p.startDate || p.contractDate;
-                if (refDateStr) {
-                    const month = new Date(refDateStr).getMonth() + 1;
-                    if (month >= 1 && month <= 3) qActuals.Q1 += amt;
-                    else if (month >= 4 && month <= 6) qActuals.Q2 += amt;
-                    else if (month >= 7 && month <= 9) qActuals.Q3 += amt;
-                    else qActuals.Q4 += amt;
+                if (p.salesRecognitions && p.salesRecognitions.length > 0) {
+                    p.salesRecognitions.forEach(sr => {
+                        const amt = Number(sr.amount) || 0;
+                        if (!sr.month) return;
+                        const month = parseInt(sr.month.split('-')[1], 10);
+                        if (month >= 1 && month <= 3) qActuals.Q1 += amt;
+                        else if (month >= 4 && month <= 6) qActuals.Q2 += amt;
+                        else if (month >= 7 && month <= 9) qActuals.Q3 += amt;
+                        else if (month >= 10 && month <= 12) qActuals.Q4 += amt;
+                    });
                 } else {
-                    qActuals.Q1 += amt;
+                    const amt = Number(p.amount) || 0;
+                    const refDateStr = p.endDate || p.startDate || p.contractDate;
+                    if (refDateStr) {
+                        const month = new Date(refDateStr).getMonth() + 1;
+                        if (month >= 1 && month <= 3) qActuals.Q1 += amt;
+                        else if (month >= 4 && month <= 6) qActuals.Q2 += amt;
+                        else if (month >= 7 && month <= 9) qActuals.Q3 += amt;
+                        else qActuals.Q4 += amt;
+                    } else {
+                        qActuals.Q1 += amt;
+                    }
                 }
             });
 
@@ -1848,7 +1917,7 @@
         }
 
         // ==========================================
-        // 8. 案件進捗 描画・編集 (フラッグ対応)
+        // 8. 案件進捗 描画・編集 (フラッグ対応 & 分割売上計上)
         // ==========================================
         function setProjectViewMode(mode) {
             projectViewMode = mode;
@@ -1941,12 +2010,13 @@
                                 ${rankProjs.map(p => {
                                     const linkedProp = properties.find(pr => pr.id === p.propertyId);
                                     const flagColor = p.flagged ? 'text-rose-500' : 'text-slate-300 hover:text-rose-400';
-
                                     return `
-                                        <div onclick="openProjectModal('${p.id}')" class="bg-white p-3.5 rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition cursor-pointer space-y-2 relative">
-                                            <div class="flex items-start justify-between gap-2">
-                                                <div class="font-bold text-slate-800 text-xs sm:text-sm">${escapeHtml(p.projectName)}</div>
-                                                <button onclick="event.stopPropagation(); toggleProjectFlag('${p.id}')" class="text-sm transition ${flagColor} p-0.5 shrink-0" title="期待フラッグ">
+                                        <div onclick="openProjectModal('${p.id}')" class="bg-white p-3.5 rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition cursor-pointer space-y-2">
+                                            <div class="font-bold text-slate-800 text-xs sm:text-sm flex items-center justify-between">
+                                                <div class="flex items-center space-x-1.5 truncate">
+                                                    <span>${escapeHtml(p.projectName)}</span>
+                                                </div>
+                                                <button onclick="event.stopPropagation(); toggleProjectFlag('${p.id}')" class="text-sm transition ${flagColor}" title="フラッグ切替">
                                                     <i class="fa-solid fa-flag"></i>
                                                 </button>
                                             </div>
@@ -1980,6 +2050,41 @@
             }
         }
 
+        function addSalesRecognitionRow(month = '', amount = '') {
+            const container = document.getElementById('pjf-sales-container');
+            const rowId = 'sr-row-' + Date.now() + Math.random().toString(36).substring(2, 5);
+            const div = document.createElement('div');
+            div.id = rowId;
+            div.className = 'flex items-center gap-2 bg-white p-2 rounded-xl border border-amber-200';
+            div.innerHTML = `
+                <div class="flex items-center space-x-1 shrink-0">
+                    <span class="text-xs font-semibold text-slate-600">計上年月:</span>
+                    <input type="month" value="${month}" oninput="updateSalesTotalHint()" class="sr-month text-xs p-2 bg-slate-50 border border-slate-300 rounded-lg font-bold">
+                </div>
+                <div class="flex items-center space-x-1 flex-1">
+                    <span class="text-xs font-semibold text-slate-600">金額:</span>
+                    <input type="number" value="${amount}" placeholder="金額(円)" oninput="updateSalesTotalHint()" class="sr-amount text-xs p-2 bg-slate-50 border border-slate-300 rounded-lg w-full font-bold">
+                    <span class="text-xs text-slate-500 shrink-0">円</span>
+                </div>
+                <button type="button" onclick="document.getElementById('${rowId}').remove(); updateSalesTotalHint();" class="text-rose-500 hover:text-rose-700 p-1.5"><i class="fa-solid fa-trash-can"></i></button>
+            `;
+            container.appendChild(div);
+            updateSalesTotalHint();
+        }
+
+        function updateSalesTotalHint() {
+            const rows = document.querySelectorAll('#pjf-sales-container > div');
+            let total = 0;
+            rows.forEach(r => {
+                const amt = parseFloat(r.querySelector('.sr-amount').value) || 0;
+                total += amt;
+            });
+            const hint = document.getElementById('pjf-sales-total-hint');
+            if (hint) {
+                hint.textContent = `計上設定合計: ¥${total.toLocaleString()}`;
+            }
+        }
+
         function openProjectModal(id = null) {
             const modal = document.getElementById('project-modal');
             const form = document.getElementById('project-form');
@@ -1989,6 +2094,7 @@
             propSelect.innerHTML = '<option value="">-- 物件に紐付けない --</option>' + 
                 properties.map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join('');
 
+            document.getElementById('pjf-sales-container').innerHTML = '';
             document.getElementById('pjf-progress-container').innerHTML = '';
             document.getElementById('btn-proj-delete').classList.toggle('hidden', !id);
 
@@ -2023,6 +2129,7 @@
                     unlinkBtn.classList.add('hidden');
                 }
 
+                (p.salesRecognitions || []).forEach(sr => addSalesRecognitionRow(sr.month, sr.amount));
                 (p.progressHistory || []).forEach(v => addProjectProgressRow(v.date, v.detail));
             } else {
                 document.getElementById('proj-modal-title').textContent = '新規工事案件の追加';
@@ -2030,6 +2137,7 @@
                 document.getElementById('pjf-flagged').checked = false;
                 propSelect.disabled = false;
                 unlinkBtn.classList.add('hidden');
+                updateSalesTotalHint();
             }
 
             toggleReasonField('pjf');
@@ -2082,6 +2190,11 @@
             e.preventDefault();
             const id = document.getElementById('pjf-id').value;
 
+            const salesRecognitions = Array.from(document.querySelectorAll('#pjf-sales-container > div')).map(row => ({
+                month: row.querySelector('.sr-month').value,
+                amount: parseFloat(row.querySelector('.sr-amount').value) || 0
+            })).filter(s => s.month && s.amount > 0);
+
             const progressHistory = Array.from(document.querySelectorAll('#pjf-progress-container > div')).map(row => ({
                 date: row.querySelector('.pj-date').value,
                 detail: row.querySelector('.pj-detail').value
@@ -2106,6 +2219,7 @@
                 startDate: document.getElementById('pjf-startDate').value,
                 endDate: document.getElementById('pjf-endDate').value,
                 address: document.getElementById('pjf-address').value,
+                salesRecognitions: salesRecognitions,
                 progressHistory: progressHistory
             };
 
