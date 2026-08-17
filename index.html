@@ -326,7 +326,7 @@
                 <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-slate-200">
                     <div>
                         <h2 class="text-xl sm:text-2xl font-bold text-slate-800">案件進捗管理</h2>
-                        <p class="text-xs sm:text-sm text-slate-500">施工・受注工事案件の一元管理 (ソート: A ➔ B ➔ C ➔ 完了 ➔ 没)</p>
+                        <p class="text-xs sm:text-sm text-slate-500">施工・受注工事案件の一元管理 (🚩期待できる案件をフラッグ機能でピックアップ)</p>
                     </div>
 
                     <div class="flex flex-wrap items-center gap-2">
@@ -346,11 +346,19 @@
                     </div>
                 </div>
 
+                <!-- フィルターバー (フラッグフィルター追加) -->
                 <div class="bg-white p-3 sm:p-4 rounded-xl shadow-sm border border-slate-200 flex flex-wrap gap-2 sm:gap-4 items-center">
                     <div class="relative flex-1 min-w-[200px]">
                         <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
                         <input type="text" id="proj-search" oninput="renderProjects()" placeholder="案件名、クライアント名、住所で検索..." class="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
                     </div>
+
+                    <!-- 🚩 フラッグ（期待案件）絞り込みフィルター -->
+                    <select id="proj-flag-filter" onchange="renderProjects()" class="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 font-semibold text-rose-600">
+                        <option value="all">🚩 すべての案件</option>
+                        <option value="flagged">🚩 期待案件のみ</option>
+                    </select>
+
                     <select id="proj-rank-filter" onchange="renderProjects()" class="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
                         <option value="all">すべてのランク</option>
                         <option value="A">A</option>
@@ -363,9 +371,10 @@
 
                 <div id="proj-container-table" class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
                     <div class="overflow-x-auto">
-                        <table class="w-full text-left border-collapse min-w-[900px]">
+                        <table class="w-full text-left border-collapse min-w-[950px]">
                             <thead>
                                 <tr class="bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                                    <th class="p-3 sm:p-4 text-center w-12">🚩</th>
                                     <th class="p-3 sm:p-4">工事案件名 / 発注者</th>
                                     <th class="p-3 sm:p-4 text-center">ランク</th>
                                     <th class="p-3 sm:p-4">紐付け物件</th>
@@ -641,7 +650,7 @@
         </div>
     </div>
 
-    <!-- 案件 直接編集・入力 モーダル (ランク: A, B, C, 完了, 没) -->
+    <!-- 案件 直接編集・入力 モーダル -->
     <div id="project-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-2 sm:p-4 hidden">
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[92vh] flex flex-col overflow-hidden">
             
@@ -657,6 +666,18 @@
 
             <form id="project-form" onsubmit="saveProject(event)" class="p-4 sm:p-6 overflow-y-auto space-y-5 flex-1 text-xs sm:text-sm">
                 <input type="hidden" id="pjf-id">
+
+                <!-- 🚩 期待案件フラッグ指定チェックボックス -->
+                <div class="bg-rose-50/70 p-3 rounded-xl border border-rose-200 flex items-center justify-between">
+                    <div class="flex items-center space-x-2 text-rose-800 font-bold">
+                        <i class="fa-solid fa-flag text-rose-500 text-lg"></i>
+                        <span>期待できる案件（注力案件）としてフラッグ🚩を立てる</span>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="pjf-flagged" class="sr-only peer">
+                        <div class="w-11 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-rose-500"></div>
+                    </label>
+                </div>
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                     <div class="sm:col-span-2">
@@ -834,7 +855,6 @@
         <span id="toast-message" class="text-xs sm:text-sm font-medium"></span>
     </div>
 
-
     <!-- アプリケーション JavaScript -->
     <script>
         // ==========================================
@@ -926,9 +946,10 @@
                 "contractStatus": "工事契約",
                 "contractDate": "2026-07-15",
                 "startDate": "2026-08-01",
-                "endDate": "2026-08-20", // アラートテスト用 (残り10日)
+                "endDate": "2026-08-20",
                 "lat": 36.29657,
                 "lng": 139.60517,
+                "flagged": true, // 🚩期待できる案件デフォルトフラッグ
                 "progressHistory": [
                     { "date": "2026-06-24", "detail": "すかいらーくより検討したい旨の連絡あり。" },
                     { "date": "2026-07-01", "detail": "フェドラ社長と面談、資さんうどんの複合提案で決定。" },
@@ -951,6 +972,7 @@
                 "endDate": "2026-11-15",
                 "lat": 35.81423,
                 "lng": 139.93245,
+                "flagged": false,
                 "progressHistory": [{ "date": "2026-07-10", "detail": "概算提出の調整中" }]
             },
             {
@@ -969,6 +991,7 @@
                 "endDate": "2026-11-30",
                 "lat": 37.8182,
                 "lng": 140.5631,
+                "flagged": true,
                 "progressHistory": []
             },
             {
@@ -986,6 +1009,7 @@
                 "endDate": "2027-02-28",
                 "lat": 35.9082,
                 "lng": 139.6012,
+                "flagged": false,
                 "progressHistory": [{ "date": "2026-07-05", "detail": "７月上旬に役員会議予定" }]
             }
         ];
@@ -1059,6 +1083,18 @@
             document.getElementById('toast-message').textContent = msg;
             toast.classList.remove('hidden');
             setTimeout(() => toast.classList.add('hidden'), 3000);
+        }
+
+        // 🚩 フラッグ（期待案件）トグル機能
+        function toggleProjectFlag(pjId) {
+            const pj = projects.find(p => p.id === pjId);
+            if (pj) {
+                pj.flagged = !pj.flagged;
+                saveData();
+                renderProjects();
+                if (currentTab === 'dashboard') renderDashboard();
+                showToast(pj.flagged ? '🚩 期待できる案件としてマークしました' : 'フラッグ🚩を解除しました');
+            }
         }
 
         // ==========================================
@@ -1165,19 +1201,13 @@
             // 🚨 引渡2週間前アラートの集計と描画
             renderDeliveryAlerts(activeProjs);
 
-            // A・Bランク・完了案件 (受注確定・高確度・完了案件)
             const abProjects = activeProjs.filter(p => p.rank === 'A' || p.rank === 'B' || p.rank === '完了');
-            // Cランク案件 (見込み案件)
             const cProjects = activeProjs.filter(p => p.rank === 'C');
-            // 完了案件数
             const completedProjects = projects.filter(p => p.rank === '完了');
 
-            // 受注実績累計 (A・B・完了ランク)
             const abTotalAmount = abProjects.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
-            // Cランクの見込み総額
             const cTotalAmount = cProjects.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
 
-            // KPIデータ
             document.getElementById('kpi-prop-count').textContent = activeProps.length;
             const rankAProps = activeProps.filter(p => p.rank === 'A').length;
             document.getElementById('kpi-prop-ranka').textContent = `Rank A: ${rankAProps}件`;
@@ -1193,24 +1223,22 @@
                 : 0;
             document.getElementById('kpi-proj-profit').textContent = `${avgProfit}%`;
 
-            // 四半期 (Q1:1-3月, Q2:4-6月, Q3:7-9月, Q4:10-12月) 実績集計 (A/B/完了のみ)
             const qActuals = { Q1: 0, Q2: 0, Q3: 0, Q4: 0 };
 
             abProjects.forEach(p => {
                 const amt = Number(p.amount) || 0;
                 const refDateStr = p.endDate || p.startDate || p.contractDate;
                 if (refDateStr) {
-                    const month = new Date(refDateStr).getMonth() + 1; // 1〜12月
+                    const month = new Date(refDateStr).getMonth() + 1;
                     if (month >= 1 && month <= 3) qActuals.Q1 += amt;
                     else if (month >= 4 && month <= 6) qActuals.Q2 += amt;
                     else if (month >= 7 && month <= 9) qActuals.Q3 += amt;
-                    else qActuals.Q4 += amt; // 10, 11, 12月
+                    else qActuals.Q4 += amt;
                 } else {
                     qActuals.Q1 += amt;
                 }
             });
 
-            // 年間目標＆実績
             const annualTarget = targetSettings.annual;
             const totalActual = abTotalAmount;
             const annualPercent = annualTarget > 0 ? Math.min(Math.round((totalActual / annualTarget) * 100), 999) : 0;
@@ -1220,7 +1248,6 @@
             document.getElementById('dash-annual-percent-text').textContent = `${annualPercent}% 達成`;
             document.getElementById('dash-annual-progress-bar').style.width = `${Math.min(annualPercent, 100)}%`;
 
-            // 四半期目標＆実績計算
             const q1Target = Math.round(annualTarget * (targetSettings.q1Pct / 100));
             const q2Target = Math.round(annualTarget * (targetSettings.q2Pct / 100));
             const q3Target = Math.round(annualTarget * (targetSettings.q3Pct / 100));
@@ -1240,7 +1267,6 @@
 
             renderGanttChart();
 
-            // 最新物件活動 (A ➔ B ➔ C ➔ 完了 ➔ 没 順)
             const sortedProps = sortItemsByRank(properties);
             const dashRecentList = document.getElementById('dash-recent-properties');
             dashRecentList.innerHTML = sortedProps.slice(0, 5).map(p => {
@@ -1263,13 +1289,12 @@
             renderSectorChart(activeProjs);
         }
 
-        // 🚨 引渡2週間前アラート（引渡準備、請求書発行、祝花依頼）
+        // 🚨 引渡2週間前アラート
         function renderDeliveryAlerts(activeProjs) {
             const container = document.getElementById('delivery-alerts-container');
             const today = new Date();
             today.setHours(0, 0, 0, 0);
 
-            // 残り14日以内の案件を抽出
             const urgentProjects = activeProjs.filter(p => {
                 if (!p.endDate || p.rank === '完了' || p.rank === '没') return false;
                 const end = new Date(p.endDate);
@@ -1313,7 +1338,6 @@
                                         <div class="text-xs text-slate-600">クライアント: ${escapeHtml(p.clientName || '未設定')} | 住所: ${escapeHtml(p.address || '-')}</div>
                                     </div>
 
-                                    <!-- アクションチェックリスト -->
                                     <div class="flex flex-wrap items-center gap-2 text-xs font-semibold">
                                         <span class="inline-flex items-center space-x-1 px-2.5 py-1 bg-indigo-50 text-indigo-700 rounded-lg border border-indigo-200">
                                             <i class="fa-solid fa-boxes-packing text-indigo-500"></i>
@@ -1339,7 +1363,7 @@
             `;
         }
 
-        // ガントチャート描画機能 (A, B, 完了ランク案件を着工日順)
+        // ガントチャート描画
         function renderGanttChart() {
             const container = document.getElementById('gantt-chart-container');
             const abProjects = projects.filter(p => (p.rank === 'A' || p.rank === 'B' || p.rank === '完了') && p.startDate && p.endDate);
@@ -1391,6 +1415,7 @@
                                 <div class="flex items-center justify-between text-xs">
                                     <div class="font-bold text-slate-800 flex items-center space-x-2">
                                         <span class="px-2 py-0.5 rounded text-[10px] font-black ${rankBadge}">${p.rank}</span>
+                                        ${p.flagged ? '<span class="text-rose-500 font-bold" title="期待案件">🚩</span>' : ''}
                                         <span>${escapeHtml(p.projectName)}</span>
                                     </div>
                                     <div class="text-slate-500 text-[11px]">
@@ -1547,14 +1572,12 @@
             }
         }
 
-        // 昇格（案件化）処理
         function promoteProperty(propId) {
             const p = properties.find(item => item.id === propId);
             if (!p) return;
 
             p.promoted = true;
 
-            // 案件を新規作成して相互リンク
             const newProjId = 'p_' + Date.now();
             p.linkedProjectId = newProjId;
 
@@ -1572,6 +1595,7 @@
                 endDate: '',
                 address: p.address || '',
                 rank: p.rank || 'A',
+                flagged: false,
                 progressHistory: (p.visits || []).map(v => ({ date: v.date, detail: v.detail }))
             };
 
@@ -1824,7 +1848,7 @@
         }
 
         // ==========================================
-        // 8. 案件進捗 描画・編集 (ソート順: A➔B➔C➔完了➔没)
+        // 8. 案件進捗 描画・編集 (フラッグ対応)
         // ==========================================
         function setProjectViewMode(mode) {
             projectViewMode = mode;
@@ -1840,6 +1864,7 @@
         function renderProjects() {
             const search = document.getElementById('proj-search').value.toLowerCase();
             const rankFilter = document.getElementById('proj-rank-filter').value;
+            const flagFilter = document.getElementById('proj-flag-filter').value;
 
             const sortedProjects = sortItemsByRank(projects);
 
@@ -1848,7 +1873,8 @@
                                     (p.clientName && p.clientName.toLowerCase().includes(search)) ||
                                     (p.address && p.address.toLowerCase().includes(search));
                 const matchRank = rankFilter === 'all' || p.rank === rankFilter;
-                return matchSearch && matchRank;
+                const matchFlag = flagFilter === 'all' || (flagFilter === 'flagged' && p.flagged);
+                return matchSearch && matchRank && matchFlag;
             });
 
             if (projectViewMode === 'table') {
@@ -1856,11 +1882,19 @@
                 tbody.innerHTML = filtered.map(p => {
                     const linkedProp = properties.find(pr => pr.id === p.propertyId);
                     const rankClass = p.rank === 'A' ? 'bg-rose-100 text-rose-700' : p.rank === 'B' ? 'bg-amber-100 text-amber-700' : p.rank === '完了' ? 'bg-teal-100 text-teal-800' : p.rank === '没' ? 'bg-slate-200 text-slate-600' : 'bg-blue-100 text-blue-700';
+                    const flagColor = p.flagged ? 'text-rose-500' : 'text-slate-300 hover:text-rose-400';
 
                     return `
                         <tr class="hover:bg-slate-50/80 transition cursor-pointer" onclick="openProjectModal('${p.id}')">
+                            <td class="p-3 sm:p-4 text-center" onclick="event.stopPropagation(); toggleProjectFlag('${p.id}')">
+                                <button class="text-base sm:text-lg transition ${flagColor}" title="${p.flagged ? 'フラッグを解除' : '期待できる案件としてマーク'}">
+                                    <i class="fa-solid fa-flag"></i>
+                                </button>
+                            </td>
                             <td class="p-3 sm:p-4">
-                                <div class="font-bold text-slate-800">${escapeHtml(p.projectName)}</div>
+                                <div class="font-bold text-slate-800 flex items-center gap-1.5">
+                                    <span>${escapeHtml(p.projectName)}</span>
+                                </div>
                                 <div class="text-xs text-slate-500">${escapeHtml(p.clientName || '発注者未設定')}</div>
                                 ${p.rank === '没' && p.reason ? `<div class="text-xs text-rose-600 mt-1">没理由: ${escapeHtml(p.reason)}</div>` : ''}
                             </td>
@@ -1906,9 +1940,16 @@
                             <div class="space-y-2.5 flex-1 overflow-y-auto max-h-[600px] pr-0.5">
                                 ${rankProjs.map(p => {
                                     const linkedProp = properties.find(pr => pr.id === p.propertyId);
+                                    const flagColor = p.flagged ? 'text-rose-500' : 'text-slate-300 hover:text-rose-400';
+
                                     return `
-                                        <div onclick="openProjectModal('${p.id}')" class="bg-white p-3.5 rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition cursor-pointer space-y-2">
-                                            <div class="font-bold text-slate-800 text-xs sm:text-sm">${escapeHtml(p.projectName)}</div>
+                                        <div onclick="openProjectModal('${p.id}')" class="bg-white p-3.5 rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition cursor-pointer space-y-2 relative">
+                                            <div class="flex items-start justify-between gap-2">
+                                                <div class="font-bold text-slate-800 text-xs sm:text-sm">${escapeHtml(p.projectName)}</div>
+                                                <button onclick="event.stopPropagation(); toggleProjectFlag('${p.id}')" class="text-sm transition ${flagColor} p-0.5 shrink-0" title="期待フラッグ">
+                                                    <i class="fa-solid fa-flag"></i>
+                                                </button>
+                                            </div>
                                             <div class="text-xs text-slate-500">${escapeHtml(p.clientName || '発注者未設定')}</div>
                                             ${linkedProp ? `<div class="text-xs text-indigo-600 font-semibold truncate"><i class="fa-solid fa-link"></i> ${escapeHtml(linkedProp.name)}</div>` : ''}
                                             <div class="text-xs font-extrabold text-slate-800">¥${(Number(p.amount)||0).toLocaleString()} (${p.profitRate || 0}%)</div>
@@ -1959,6 +2000,7 @@
 
                 document.getElementById('proj-modal-title').textContent = '工事案件の編集';
                 document.getElementById('pjf-id').value = p.id;
+                document.getElementById('pjf-flagged').checked = !!p.flagged;
                 document.getElementById('pjf-projectName').value = p.projectName || '';
                 document.getElementById('pjf-propertyId').value = p.propertyId || '';
                 document.getElementById('pjf-rank').value = p.rank || 'A';
@@ -1985,6 +2027,7 @@
             } else {
                 document.getElementById('proj-modal-title').textContent = '新規工事案件の追加';
                 document.getElementById('pjf-id').value = '';
+                document.getElementById('pjf-flagged').checked = false;
                 propSelect.disabled = false;
                 unlinkBtn.classList.add('hidden');
             }
@@ -1997,7 +2040,6 @@
             document.getElementById('project-modal').classList.add('hidden');
         }
 
-        // 案件側で紐づけ解除 ➔ 案件自体を削除し物件側の昇格を解除
         function unlinkProjectInModal() {
             const pjId = document.getElementById('pjf-id').value;
             if (!pjId) return;
@@ -2050,6 +2092,7 @@
 
             const projData = {
                 id: id || ('p_' + Date.now()),
+                flagged: document.getElementById('pjf-flagged').checked,
                 projectName: document.getElementById('pjf-projectName').value,
                 propertyId: selectedPropId,
                 rank: document.getElementById('pjf-rank').value,
@@ -2210,7 +2253,7 @@
 
                 marker.bindPopup(`
                     <div class="space-y-2 text-xs">
-                        <div class="font-bold text-slate-800 text-sm">⭐ ${escapeHtml(pj.projectName)}</div>
+                        <div class="font-bold text-slate-800 text-sm">${pj.flagged ? '🚩 ' : ''}⭐ ${escapeHtml(pj.projectName)}</div>
                         <div>発注者: ${escapeHtml(pj.clientName || '-')}</div>
                         <div class="font-extrabold text-slate-800">¥${(Number(pj.amount)||0).toLocaleString()}</div>
                         <button onclick="openProjectModal('${pj.id}')" class="w-full mt-1 py-1 bg-emerald-600 text-white rounded font-semibold">詳細・編集</button>
