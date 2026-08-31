@@ -259,6 +259,7 @@
                         <div class="flex items-center gap-3 text-xs">
                             <span class="inline-flex items-center space-x-1"><span class="w-3 h-3 rounded-full bg-emerald-500 inline-block"></span><span>工期（工期〇〇日）</span></span>
                             <span class="inline-flex items-center space-x-1"><span class="w-3 h-3 rounded-full bg-amber-500 inline-block"></span><span>契約日</span></span>
+                            <span class="inline-flex items-center space-x-1"><span class="w-3 h-3 rounded-full bg-emerald-600 inline-block"></span><span>引渡日</span></span>
                         </div>
                     </div>
 
@@ -801,6 +802,18 @@
                     <div class="sm:col-span-2">
                         <label class="block font-semibold text-slate-700 mb-1">施工場所住所</label>
                         <input type="text" id="pjf-address" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500">
+                    </div>
+
+                    <!-- 📊 実行予算書 (GoogleスプレッドシートURL) -->
+                    <div class="sm:col-span-2">
+                        <label class="block font-semibold text-slate-700 mb-1">実行予算書 <span class="text-xs font-normal text-slate-500">(Googleスプレッドシート等のURL)</span></label>
+                        <div class="flex items-center gap-2">
+                            <input type="url" id="pjf-budgetUrl" placeholder="https://docs.google.com/spreadsheets/d/..." oninput="updateBudgetUrlLink()" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500">
+                            <a id="pjf-budgetUrl-link" href="#" target="_blank" rel="noopener noreferrer" class="hidden shrink-0 px-3 py-2.5 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 rounded-lg text-xs font-bold transition flex items-center gap-1.5">
+                                <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                                <span>開く</span>
+                            </a>
+                        </div>
                     </div>
 
                     <!-- 💰 売上計上年月（分割計上設定） -->
@@ -1477,6 +1490,11 @@
                             contractMarkerLeft = Math.max(0, Math.min(100, ((cTime - minTime) / totalDuration) * 100));
                         }
 
+                        let endMarkerLeft = null;
+                        if (eTime) {
+                            endMarkerLeft = Math.max(0, Math.min(100, ((eTime - minTime) / totalDuration) * 100));
+                        }
+
                         const rankBadge = p.rank === 'A' ? 'bg-rose-100 text-rose-700' : p.rank === 'B' ? 'bg-amber-100 text-amber-700' : p.rank === '完了' ? 'bg-teal-100 text-teal-800' : 'bg-blue-100 text-blue-700';
 
                         return `
@@ -1486,6 +1504,7 @@
                                         <span class="px-2 py-0.5 rounded text-[10px] font-black ${rankBadge}">${p.rank}</span>
                                         ${p.flagged ? '<span class="text-rose-500 font-bold" title="期待案件">🚩</span>' : ''}
                                         <span>${escapeHtml(p.projectName)}</span>
+                                        ${p.budgetUrl ? `<a href="${escapeHtml(p.budgetUrl)}" target="_blank" rel="noopener noreferrer" class="text-xs text-emerald-600 hover:text-emerald-800 font-semibold inline-flex items-center gap-1" title="実行予算書を開く"><i class="fa-solid fa-file-excel"></i><span>実行予算書</span></a>` : ''}
                                     </div>
                                     <div class="text-slate-500 text-[11px]">
                                         ${p.contractDate ? `契約: ${p.contractDate} | ` : ''}工期: ${p.startDate} 〜 ${p.endDate}
@@ -1503,6 +1522,12 @@
                                          style="left: ${leftPct}%; width: ${widthPct}%;">
                                         工期 ${daysDiff} 日 ${p.rank === '完了' ? '(完了)' : ''}
                                     </div>
+
+                                    ${endMarkerLeft !== null ? `
+                                        <div class="absolute -top-3 bottom-0 w-1 bg-emerald-600 z-20" style="left: ${endMarkerLeft}%" title="引渡日: ${p.endDate}">
+                                            <div class="absolute -top-2 -left-2 w-5 h-5 bg-emerald-600 text-white rounded-full flex items-center justify-center text-[10px] font-bold shadow-md border-2 border-white">完</div>
+                                        </div>
+                                    ` : ''}
                                 </div>
                             </div>
                         `;
@@ -2085,6 +2110,17 @@
             }
         }
 
+        function updateBudgetUrlLink() {
+            const url = document.getElementById('pjf-budgetUrl').value.trim();
+            const btn = document.getElementById('pjf-budgetUrl-link');
+            if (url) {
+                btn.href = url;
+                btn.classList.remove('hidden');
+            } else {
+                btn.classList.add('hidden');
+            }
+        }
+
         function openProjectModal(id = null) {
             const modal = document.getElementById('project-modal');
             const form = document.getElementById('project-form');
@@ -2120,6 +2156,7 @@
                 document.getElementById('pjf-startDate').value = p.startDate || '';
                 document.getElementById('pjf-endDate').value = p.endDate || '';
                 document.getElementById('pjf-address').value = p.address || '';
+                document.getElementById('pjf-budgetUrl').value = p.budgetUrl || '';
 
                 if (p.propertyId) {
                     propSelect.disabled = true;
@@ -2135,11 +2172,13 @@
                 document.getElementById('proj-modal-title').textContent = '新規工事案件の追加';
                 document.getElementById('pjf-id').value = '';
                 document.getElementById('pjf-flagged').checked = false;
+                document.getElementById('pjf-budgetUrl').value = '';
                 propSelect.disabled = false;
                 unlinkBtn.classList.add('hidden');
                 updateSalesTotalHint();
             }
 
+            updateBudgetUrlLink();
             toggleReasonField('pjf');
             modal.classList.remove('hidden');
         }
@@ -2219,6 +2258,7 @@
                 startDate: document.getElementById('pjf-startDate').value,
                 endDate: document.getElementById('pjf-endDate').value,
                 address: document.getElementById('pjf-address').value,
+                budgetUrl: document.getElementById('pjf-budgetUrl').value,
                 salesRecognitions: salesRecognitions,
                 progressHistory: progressHistory
             };
