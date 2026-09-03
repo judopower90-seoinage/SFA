@@ -316,6 +316,11 @@
                         <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
                         <input type="text" id="prop-search" oninput="renderProperties()" placeholder="物件名、住所、地主名で検索..." class="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
                     </div>
+                    <select id="prop-flag-filter" onchange="renderProperties()" class="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 font-semibold text-rose-600">
+                        <option value="all">🚩 すべての物件</option>
+                        <option value="flagged">🚩 期待物件のみ</option>
+                    </select>
+
                     <select id="prop-rank-filter" onchange="renderProperties()" class="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
                         <option value="all">すべてのランク</option>
                         <option value="A">A</option>
@@ -327,9 +332,10 @@
 
                 <div id="prop-container-table" class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
                     <div class="overflow-x-auto">
-                        <table class="w-full text-left border-collapse min-w-[800px]">
+                        <table class="w-full text-left border-collapse min-w-[850px]">
                             <thead>
                                 <tr class="bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                                    <th class="p-3 sm:p-4 text-center w-12">🚩</th>
                                     <th class="p-3 sm:p-4">物件名 / 所在地</th>
                                     <th class="p-3 sm:p-4">種別</th>
                                     <th class="p-3 sm:p-4 text-center">ランク</th>
@@ -539,6 +545,18 @@
 
             <form id="property-form" onsubmit="saveProperty(event)" class="p-4 sm:p-6 overflow-y-auto space-y-6 flex-1 text-xs sm:text-sm">
                 <input type="hidden" id="pf-id">
+
+                <!-- 🚩 期待物件フラッグ指定チェックボックス -->
+                <div class="bg-rose-50/70 p-3 rounded-xl border border-rose-200 flex items-center justify-between">
+                    <div class="flex items-center space-x-2 text-rose-800 font-bold">
+                        <i class="fa-solid fa-flag text-rose-500 text-lg"></i>
+                        <span>期待できる物件（注力開発）としてフラッグ🚩を立てる</span>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="pf-flagged" class="sr-only peer">
+                        <div class="w-11 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-rose-500"></div>
+                    </label>
+                </div>
 
                 <div>
                     <h4 class="text-sm sm:text-base font-bold text-slate-800 border-b pb-2 mb-4 flex items-center gap-2">
@@ -1165,6 +1183,17 @@
             setTimeout(() => toast.classList.add('hidden'), 3000);
         }
 
+        function togglePropertyFlag(propId) {
+            const prop = properties.find(p => p.id === propId);
+            if (prop) {
+                prop.flagged = !prop.flagged;
+                saveData();
+                renderProperties();
+                if (currentTab === 'dashboard') renderDashboard();
+                showToast(prop.flagged ? '🚩 期待できる物件としてマークしました' : 'フラッグ🚩を解除しました');
+            }
+        }
+
         function toggleProjectFlag(pjId) {
             const pj = projects.find(p => p.id === pjId);
             if (pj) {
@@ -1619,6 +1648,7 @@
         function renderProperties() {
             const search = document.getElementById('prop-search').value.toLowerCase();
             const rankFilter = document.getElementById('prop-rank-filter').value;
+            const flagFilter = document.getElementById('prop-flag-filter') ? document.getElementById('prop-flag-filter').value : 'all';
 
             const sortedProperties = sortItemsByRank(properties);
 
@@ -1627,7 +1657,8 @@
                                     (p.address && p.address.toLowerCase().includes(search)) ||
                                     (p.landowners && p.landowners.join('').toLowerCase().includes(search));
                 const matchRank = rankFilter === 'all' || p.rank === rankFilter;
-                return matchSearch && matchRank;
+                const matchFlag = flagFilter === 'all' || (flagFilter === 'flagged' && p.flagged);
+                return matchSearch && matchRank && matchFlag;
             });
 
             if (propertyViewMode === 'table') {
@@ -1635,9 +1666,15 @@
                 tbody.innerHTML = filtered.map(p => {
                     const linkedProjects = projects.filter(pj => pj.propertyId === p.id);
                     const rankClass = p.rank === 'A' ? 'bg-rose-100 text-rose-700' : p.rank === 'B' ? 'bg-amber-100 text-amber-700' : p.rank === '没' ? 'bg-slate-200 text-slate-600' : 'bg-blue-100 text-blue-700';
+                    const flagColor = p.flagged ? 'text-rose-500' : 'text-slate-300 hover:text-rose-400';
 
                     return `
                         <tr class="hover:bg-slate-50/80 transition cursor-pointer" onclick="openPropertyModal('${p.id}')">
+                            <td class="p-3 sm:p-4 text-center" onclick="event.stopPropagation(); togglePropertyFlag('${p.id}')">
+                                <button class="text-base sm:text-lg transition ${flagColor}" title="${p.flagged ? 'フラッグを解除' : '期待できる物件としてマーク'}">
+                                    <i class="fa-solid fa-flag"></i>
+                                </button>
+                            </td>
                             <td class="p-3 sm:p-4">
                                 <div class="font-bold text-slate-800 flex items-center space-x-2">
                                     <span>${escapeHtml(p.name)}</span>
@@ -1684,11 +1721,18 @@
                             </div>
 
                             <div class="space-y-2.5 flex-1 overflow-y-auto max-h-[600px] pr-0.5">
-                                ${rankProps.map(p => `
+                                ${rankProps.map(p => {
+                                    const flagColor = p.flagged ? 'text-rose-500' : 'text-slate-300 hover:text-rose-400';
+                                    return `
                                     <div onclick="openPropertyModal('${p.id}')" class="bg-white p-3.5 rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition cursor-pointer space-y-2">
                                         <div class="font-bold text-slate-800 text-xs sm:text-sm flex items-center justify-between">
-                                            <span>${escapeHtml(p.name)}</span>
-                                            ${p.promoted ? '<span class="text-[9px] bg-emerald-100 text-emerald-800 px-1 py-0.5 rounded font-bold">案件化済</span>' : ''}
+                                            <div class="flex items-center space-x-1.5 truncate">
+                                                <span>${escapeHtml(p.name)}</span>
+                                                ${p.promoted ? '<span class="text-[9px] bg-emerald-100 text-emerald-800 px-1 py-0.5 rounded font-bold">案件化済</span>' : ''}
+                                            </div>
+                                            <button onclick="event.stopPropagation(); togglePropertyFlag('${p.id}')" class="text-sm transition ${flagColor}" title="フラッグ切替">
+                                                <i class="fa-solid fa-flag"></i>
+                                            </button>
                                         </div>
                                         <div class="text-xs text-slate-500 line-clamp-2">${escapeHtml(p.address || '住所未設定')}</div>
                                         ${r === '没' && p.reason ? `<div class="p-2 bg-rose-50 text-rose-700 rounded-lg text-xs">理由: ${escapeHtml(p.reason)}</div>` : ''}
@@ -1697,7 +1741,8 @@
                                             <span class="text-indigo-600 font-semibold"><i class="fa-solid fa-pen-to-square"></i> 編集</span>
                                         </div>
                                     </div>
-                                `).join('')}
+                                    `;
+                                }).join('')}
                             </div>
                         </div>
                     `;
@@ -1728,7 +1773,7 @@
                 endDate: '',
                 address: p.address || '',
                 rank: p.rank || 'A',
-                flagged: false,
+                flagged: !!p.flagged,
                 paymentDates: [],
                 progressHistory: (p.visits || []).map(v => ({ date: v.date, detail: v.detail }))
             };
@@ -1765,6 +1810,7 @@
 
                 document.getElementById('prop-modal-title').textContent = '物件情報の編集';
                 document.getElementById('pf-id').value = p.id;
+                document.getElementById('pf-flagged').checked = !!p.flagged;
                 document.getElementById('pf-name').value = p.name || '';
                 document.getElementById('pf-rank').value = p.rank || 'A';
                 document.getElementById('pf-reason').value = p.reason || '';
@@ -1784,6 +1830,7 @@
             } else {
                 document.getElementById('prop-modal-title').textContent = '新規物件の追加';
                 document.getElementById('pf-id').value = '';
+                document.getElementById('pf-flagged').checked = false;
                 document.getElementById('pf-linked-projects-list').innerHTML = '<div class="text-xs text-slate-400 py-1">物件保存後に工事案件を紐付けできます</div>';
             }
 
@@ -1937,6 +1984,7 @@
 
             const propData = {
                 id: id || ('prop-' + Date.now()),
+                flagged: document.getElementById('pf-flagged').checked,
                 name: document.getElementById('pf-name').value,
                 rank: document.getElementById('pf-rank').value,
                 reason: document.getElementById('pf-rank').value === '没' ? document.getElementById('pf-reason').value : '',
